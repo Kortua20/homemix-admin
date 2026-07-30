@@ -143,9 +143,7 @@ function CategoryFields({ category, state }: CategoryFieldsProps) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor={`category-slug-${category?.id ?? "new"}`}>
-          სლაგი
-        </Label>
+        <Label htmlFor={`category-slug-${category?.id ?? "new"}`}>სლაგი</Label>
         <Input
           id={`category-slug-${category?.id ?? "new"}`}
           name="slug"
@@ -244,7 +242,7 @@ function AddCategoryForm({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="h-[46px] rounded-lg border border-[#d6c3b8] text-sm font-semibold text-[#605e5b]"
+              className="h-11.5 rounded-lg border border-[#d6c3b8] text-sm font-semibold text-[#605e5b]"
             >
               გაუქმება
             </button>
@@ -292,7 +290,7 @@ function EditCategoryForm({
             <button
               type="button"
               onClick={onClose}
-              className="h-[46px] rounded-lg border border-[#d6c3b8] text-sm font-semibold text-[#605e5b]"
+              className="h-11.5 rounded-lg border border-[#d6c3b8] text-sm font-semibold text-[#605e5b]"
             >
               გაუქმება
             </button>
@@ -347,7 +345,7 @@ function DeleteCategoryForm({
             <button
               type="button"
               onClick={onClose}
-              className="h-[46px] rounded-lg border border-[#d6c3b8] text-sm font-semibold text-[#605e5b]"
+              className="h-11.5 rounded-lg border border-[#d6c3b8] text-sm font-semibold text-[#605e5b]"
             >
               გაუქმება
             </button>

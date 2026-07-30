@@ -1,6 +1,7 @@
 import type {
   Product,
   ProductCategory,
+  ProductImage,
 } from "@/components/products/types";
 
 export const productSelect = `
@@ -16,8 +17,25 @@ export const productSelect = `
     id,
     name,
     slug
+  ),
+  images:product_images (
+    id,
+    original_name,
+    content_type,
+    size_bytes,
+    sort_order,
+    created_at
   )
 `;
+
+type ProductImageQueryRow = {
+  id: string;
+  original_name: string;
+  content_type: string;
+  size_bytes: number | string;
+  sort_order: number;
+  created_at: string;
+};
 
 export type ProductQueryRow = {
   id: string;
@@ -29,7 +47,19 @@ export type ProductQueryRow = {
   created_at: string;
   updated_at: string;
   category: ProductCategory | ProductCategory[] | null;
+  images: ProductImageQueryRow[] | null;
 };
+
+function normalizeProductImage(row: ProductImageQueryRow): ProductImage {
+  return {
+    id: row.id,
+    originalName: row.original_name,
+    contentType: row.content_type,
+    sizeBytes: Number(row.size_bytes),
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+  };
+}
 
 export function normalizeProduct(row: ProductQueryRow): Product | null {
   const category = Array.isArray(row.category)
@@ -48,6 +78,13 @@ export function normalizeProduct(row: ProductQueryRow): Product | null {
     price: Number(row.price),
     categoryId: row.category_id,
     category,
+    images: (row.images ?? [])
+      .map(normalizeProductImage)
+      .sort(
+        (first, second) =>
+          first.sortOrder - second.sortOrder ||
+          first.createdAt.localeCompare(second.createdAt),
+      ),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -64,4 +101,8 @@ export function formatPrice(price: number) {
     minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(price);
+}
+
+export function getProductImageUrl(imageId: string) {
+  return `/api/product-images/${imageId}`;
 }

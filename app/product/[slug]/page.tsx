@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { DeleteProductButton } from "@/components/products/delete-product-button";
 import {
   formatPrice,
+  getProductImageUrl,
   normalizeProduct,
   productSelect,
   type ProductQueryRow,
@@ -73,31 +74,55 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </div>
 
       <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:items-start">
-        <section
-          aria-labelledby="product-photo-heading"
-          className="flex min-h-72 flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:min-h-[460px]"
-        >
-          <ImageOff
-            aria-hidden="true"
-            className="size-12 text-[#a89082]"
-          />
-          <h2 id="product-photo-heading" className="mt-4 text-xl font-bold">
-            ფოტოები ჯერ არ არის
-          </h2>
-          <p className="mt-2 max-w-sm text-sm leading-6 text-[#605e5b]">
-            პროდუქტის ფოტოების ატვირთვა შემდეგ ეტაპზე დაემატება.
-          </p>
-        </section>
+        {product.images.length > 0 ? (
+          <section
+            aria-labelledby="product-photo-heading"
+            className="rounded-3xl bg-white p-3 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-4"
+          >
+            <h2 id="product-photo-heading" className="sr-only">
+              პროდუქტის ფოტოები
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              {product.images.map((image, index) => (
+                <div
+                  key={image.id}
+                  className={
+                    index === 0
+                      ? "col-span-2 aspect-4/3 overflow-hidden rounded-2xl bg-[#f0eded]"
+                      : "aspect-square overflow-hidden rounded-2xl bg-[#f0eded]"
+                  }
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={getProductImageUrl(image.id)}
+                    alt={`${product.name} — ფოტო ${index + 1}`}
+                    className="size-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section
+            aria-labelledby="product-photo-heading"
+            className="flex min-h-72 flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:min-h-115"
+          >
+            <ImageOff aria-hidden="true" className="size-12 text-[#a89082]" />
+            <h2 id="product-photo-heading" className="mt-4 text-xl font-bold">
+              ფოტოები ჯერ არ არის
+            </h2>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-[#605e5b]">
+              ფოტოების დამატება პროდუქტის რედაქტირების გვერდიდან შეგიძლიათ.
+            </p>
+          </section>
+        )}
 
         <div className="grid gap-4">
           <section
             aria-labelledby="general-information-heading"
             className="rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-7"
           >
-            <h2
-              id="general-information-heading"
-              className="text-xl font-bold"
-            >
+            <h2 id="general-information-heading" className="text-xl font-bold">
               ზოგადი ინფორმაცია
             </h2>
             <dl className="mt-5 divide-y divide-[#e4e2e1]">
@@ -113,12 +138,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   {product.category.name}
                 </dd>
               </div>
-              <div className="flex items-center justify-between gap-4 py-4">
-                <dt className="text-sm text-[#605e5b]">სლაგი</dt>
-                <dd className="max-w-[65%] break-all text-right text-sm font-semibold">
-                  /{product.slug}
-                </dd>
-              </div>
               <div className="flex items-center justify-between gap-4 pb-0 pt-4">
                 <dt className="text-sm text-[#605e5b]">ფასი</dt>
                 <dd className="text-xl font-bold text-[#7f512f]">
@@ -132,10 +151,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             aria-labelledby="product-description-heading"
             className="rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-7"
           >
-            <h2
-              id="product-description-heading"
-              className="text-xl font-bold"
-            >
+            <h2 id="product-description-heading" className="text-xl font-bold">
               აღწერა
             </h2>
             <p className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-[#605e5b]">

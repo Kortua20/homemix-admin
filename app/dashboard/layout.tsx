@@ -69,15 +69,6 @@ export default function DashboardLayout({
         <p className="min-w-0 flex-1 text-center text-[28px] font-bold tracking-[-0.02em] text-[#7f512f]">
           ადმინისტრაცია
         </p>
-        <form action={signOut}>
-          <button
-            type="submit"
-            aria-label="გასვლა"
-            className="flex size-10 items-center justify-center rounded-full text-[#605e5b]"
-          >
-            <LogOut aria-hidden="true" className="size-5" />
-          </button>
-        </form>
       </header>
 
       <main className="flex min-h-svh flex-col">
@@ -85,10 +76,6 @@ export default function DashboardLayout({
 
         <footer className="mt-auto hidden items-center justify-between border-t border-[#d6c3b8] bg-[#f6f3f2] px-16 py-4 text-xs font-medium text-[#605e5b] lg:flex">
           <span>© 2026 Home Mix ადმინისტრაციის პორტალი</span>
-          <div className="flex gap-4">
-            <span>კონფიდენციალურობა</span>
-            <span>დახმარება</span>
-          </div>
         </footer>
       </main>
 

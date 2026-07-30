@@ -3,7 +3,10 @@ import Link from "next/link";
 
 import { ProductActions } from "@/components/dashboard/products/product-actions";
 import type { Product } from "@/components/products/types";
-import { formatPrice } from "@/lib/product-data";
+import {
+  formatPrice,
+  getProductImageUrl,
+} from "@/lib/product-data";
 
 type MobileProductCardProps = {
   product: Product;
@@ -17,8 +20,17 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
         aria-label={`${product.name} — დეტალების ნახვა`}
         className="flex min-w-0 flex-1 items-center gap-3 pr-9"
       >
-        <div className="flex size-20 shrink-0 items-center justify-center rounded-lg bg-[#f0eded] text-[#a89082]">
-          <Package aria-hidden="true" className="size-7" />
+        <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f0eded] text-[#a89082]">
+          {product.images[0] ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={getProductImageUrl(product.images[0].id)}
+              alt=""
+              className="size-full object-cover"
+            />
+          ) : (
+            <Package aria-hidden="true" className="size-7" />
+          )}
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">

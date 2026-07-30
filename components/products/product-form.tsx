@@ -9,10 +9,8 @@ import {
   updateProduct,
   type ProductActionState,
 } from "@/app/product/actions";
-import type {
-  Product,
-  ProductCategory,
-} from "@/components/products/types";
+import { ProductImagesField } from "@/components/products/product-images-field";
+import type { Product, ProductCategory } from "@/components/products/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,11 +27,7 @@ type ProductFormProps = {
   product?: Product;
 };
 
-export function ProductForm({
-  mode,
-  categories,
-  product,
-}: ProductFormProps) {
+export function ProductForm({ mode, categories, product }: ProductFormProps) {
   const action = mode === "create" ? createProduct : updateProduct;
   const [state, formAction, pending] = useActionState(
     action,
@@ -67,11 +61,7 @@ export function ProductForm({
       {product && (
         <>
           <input type="hidden" name="id" value={product.id} />
-          <input
-            type="hidden"
-            name="previousSlug"
-            value={product.slug}
-          />
+          <input type="hidden" name="previousSlug" value={product.slug} />
         </>
       )}
 
@@ -241,6 +231,11 @@ export function ProductForm({
             </p>
           )}
         </div>
+
+        <ProductImagesField
+          existingImages={product?.images}
+          serverError={state.fieldErrors?.images}
+        />
       </div>
 
       {categories.length === 0 && (
@@ -261,7 +256,7 @@ export function ProductForm({
       <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[#e4e2e1] pt-5 sm:flex-row sm:justify-end">
         <Link
           href={cancelHref}
-          className="inline-flex h-[46px] items-center justify-center rounded-lg border border-[#d6c3b8] px-5 text-sm font-semibold text-[#605e5b]"
+          className="inline-flex h-11.5 items-center justify-center rounded-lg border border-[#d6c3b8] px-5 text-sm font-semibold text-[#605e5b]"
         >
           გაუქმება
         </Link>

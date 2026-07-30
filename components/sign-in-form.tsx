@@ -37,7 +37,7 @@ export function SignInForm() {
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="admin@nordicliving.com"
+            placeholder="example@gmail.com"
             defaultValue={state.email}
             required
             aria-invalid={Boolean(state.errors?.email) || hasFormError}

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { ProductActions } from "@/components/dashboard/products/product-actions";
 import type { Product } from "@/components/products/types";
-import { formatPrice } from "@/lib/product-data";
+import { formatPrice, getProductImageUrl } from "@/lib/product-data";
 
 type DesktopProductCardProps = {
   product: Product;
@@ -17,11 +17,20 @@ export function DesktopProductCard({ product }: DesktopProductCardProps) {
         aria-label={`${product.name} — დეტალების ნახვა`}
         className="group"
       >
-        <div className="flex h-48 items-center justify-center rounded-xl bg-[#f0eded] text-[#a89082]">
-          <Package aria-hidden="true" className="size-12" />
+        <div className="flex h-48 items-center justify-center overflow-hidden rounded-xl bg-[#f0eded] text-[#a89082]">
+          {product.images[0] ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={getProductImageUrl(product.images[0].id)}
+              alt=""
+              className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            />
+          ) : (
+            <Package aria-hidden="true" className="size-12" />
+          )}
         </div>
 
-        <div className="flex min-h-[112px] flex-col gap-1 py-4">
+        <div className="flex min-h-28 flex-col gap-1 py-4">
           <h2 className="line-clamp-2 text-2xl font-semibold leading-[1.3] text-[#1b1c1c] transition-colors group-hover:text-[#7f512f]">
             {product.name}
           </h2>

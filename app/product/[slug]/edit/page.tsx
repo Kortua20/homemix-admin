@@ -58,7 +58,8 @@ export default async function EditProductPage({
           პროდუქტის რედაქტირება
         </h1>
         <p className="mt-2 text-sm leading-6 text-[#605e5b] lg:text-base">
-          განაახლეთ პროდუქტის დასახელება, სლაგი, კატეგორია, ფასი ან აღწერა.
+          განაახლეთ პროდუქტის ინფორმაცია, დაამატეთ ახალი ფოტოები ან წაშალეთ
+          არსებული.
         </p>
       </div>
 

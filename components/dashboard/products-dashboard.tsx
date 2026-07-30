@@ -1,89 +1,25 @@
 "use client";
 
-import { Package, Search } from "lucide-react";
+import { AlertCircle, Package, Plus, Search } from "lucide-react";
+import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 
 import {
   DesktopProductCard,
   MobileProductCard,
-  type Product,
 } from "@/components/dashboard/products";
+import type { Product } from "@/components/products/types";
 import { Input } from "@/components/ui/input";
 
-const products: Product[] = [
-  {
-    id: 1,
-    name: "კისტის სასადილო მაგიდა",
-    category: "მაგიდები",
-    material: "მყარი მუხა",
-    price: "1 250 ₾",
-    code: "TBL-042",
-    image: "/products/kyst-table.jpg",
-    available: true,
-  },
-  {
-    id: 2,
-    name: "ლუმინა სავარძელი",
-    category: "სავარძლები",
-    material: "ბუკლე",
-    price: "890 ₾",
-    code: "CHR-118",
-    image: "/products/lumina-chair.jpg",
-    available: false,
-  },
-  {
-    id: 3,
-    name: "აურა იატაკის სანათი",
-    category: "განათება",
-    material: "სპილენძი",
-    price: "450 ₾",
-    code: "LMP-002",
-    image: "/products/aura-lamp.jpg",
-    available: true,
-  },
-  {
-    id: 4,
-    name: "ფიორდის კომოდი",
-    category: "შესანახი ავეჯი",
-    material: "კაკალი",
-    price: "1 800 ₾",
-    code: "STG-305",
-    image: "/products/fjord-credenza.jpg",
-    available: true,
-  },
-  {
-    id: 5,
-    name: "კოპენჰაგენის სავარძელი",
-    category: "სავარძლები",
-    material: "ღია მუხა და კრემისფერი ქსოვილი",
-    price: "1 150 ₾",
-    code: "CHR-204",
-    image: "/products/kobenhavn-chair.jpg",
-    available: true,
-  },
-  {
-    id: 6,
-    name: "ორჰუსის ჟურნალის მაგიდა",
-    category: "მაგიდები",
-    material: "მყარი მუხა",
-    price: "760 ₾",
-    code: "TBL-116",
-    image: "/products/aarhus-table.jpg",
-    available: false,
-  },
-  {
-    id: 7,
-    name: "ლუმინა დეკორატიული სანათი",
-    category: "განათება",
-    material: "მქრქალი კერამიკა",
-    price: "390 ₾",
-    code: "LMP-087",
-    image: "/products/lumina-floor-lamp.jpg",
-    available: true,
-  },
-];
+type ProductsDashboardProps = {
+  products: Product[];
+  loadError?: boolean;
+};
 
-export function ProductsDashboard() {
+export function ProductsDashboard({
+  products,
+  loadError = false,
+}: ProductsDashboardProps) {
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLocaleLowerCase("ka");
@@ -100,7 +36,7 @@ export function ProductsDashboard() {
           პროდუქტები
         </h1>
         <p className="mt-2 text-base leading-relaxed text-[#605e5b]">
-          მართეთ მარაგი, ფასები და პროდუქტის დეტალები.
+          მართეთ პროდუქტები, ფასები და მათი დეტალები.
         </p>
       </div>
 
@@ -121,10 +57,23 @@ export function ProductsDashboard() {
         </div>
       </div>
 
-      {filteredProducts.length > 0 ? (
+      {loadError ? (
+        <div className="mt-4 rounded-3xl bg-white px-6 py-14 text-center shadow-[0_10px_20px_rgba(0,0,0,0.04)] lg:mt-6">
+          <AlertCircle
+            aria-hidden="true"
+            className="mx-auto size-8 text-[#c62828]"
+          />
+          <h2 className="mt-3 text-lg font-semibold">
+            პროდუქტები ვერ ჩაიტვირთა
+          </h2>
+          <p className="mt-1 text-sm text-[#605e5b]">
+            განაახლეთ გვერდი ან მოგვიანებით სცადეთ.
+          </p>
+        </div>
+      ) : filteredProducts.length > 0 ? (
         <div className="mt-4 grid gap-2 lg:mt-6 lg:grid-cols-3 lg:gap-6 [@media(min-width:1180px)]:grid-cols-4">
           {filteredProducts.map((product) => (
-            <div key={product.id}>
+            <div key={product.id} className="min-w-0">
               <DesktopProductCard product={product} />
               <MobileProductCard product={product} />
             </div>
@@ -136,10 +85,25 @@ export function ProductsDashboard() {
             aria-hidden="true"
             className="mx-auto size-8 text-[#83746b]"
           />
-          <h2 className="mt-3 text-lg font-semibold">პროდუქტი ვერ მოიძებნა</h2>
+          <h2 className="mt-3 text-lg font-semibold">
+            {products.length === 0
+              ? "პროდუქტები ჯერ არ არის"
+              : "პროდუქტი ვერ მოიძებნა"}
+          </h2>
           <p className="mt-1 text-sm text-[#605e5b]">
-            სცადეთ სხვა სახელის მოძებნა.
+            {products.length === 0
+              ? "შექმენით პირველი პროდუქტი."
+              : "სცადეთ სხვა სახელის მოძებნა."}
           </p>
+          {products.length === 0 && (
+            <Link
+              href="/product/new"
+              className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#7f512f] px-5 text-sm font-semibold text-white"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              პროდუქტის შექმნა
+            </Link>
+          )}
         </div>
       )}
     </section>

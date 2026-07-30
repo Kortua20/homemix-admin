@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { ProductsDashboard } from "@/components/dashboard/products-dashboard";
+import {
+  normalizeProducts,
+  productSelect,
+  type ProductQueryRow,
+} from "@/lib/product-data";
 import { createClient } from "@/lib/server";
 
 export const metadata: Metadata = {
@@ -10,11 +15,19 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
+  const { data: authData } = await supabase.auth.getClaims();
 
-  if (!data?.claims) {
+  if (!authData?.claims) {
     redirect("/");
   }
 
-  return <ProductsDashboard />;
+  const { data, error } = await supabase
+    .from("products")
+    .select(productSelect)
+    .order("created_at", { ascending: false });
+  const products = error
+    ? []
+    : normalizeProducts((data ?? []) as ProductQueryRow[]);
+
+  return <ProductsDashboard products={products} loadError={Boolean(error)} />;
 }

@@ -1,14 +1,16 @@
 import Image from "next/image";
-import { LogOut, Package, Plus } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Plus } from "lucide-react";
 
 import { signOut } from "@/app/dashboard/actions";
-import { CategoriesLink } from "@/components/dashboard/products";
-import { Button } from "@/components/ui/button";
+import { DashboardNavigation } from "@/components/dashboard/dashboard-navigation";
 
 export default function DashboardLayout({
   children,
+  showAddProduct = true,
 }: Readonly<{
   children: React.ReactNode;
+  showAddProduct?: boolean;
 }>) {
   return (
     <div className="min-h-svh bg-[#fcf9f8] text-[#1b1c1c] lg:pl-64">
@@ -33,27 +35,16 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          <nav aria-label="მთავარი ნავიგაცია" className="grid gap-2">
-            <a
-              href="/dashboard"
-              aria-current="page"
-              className="flex items-center gap-2 rounded-lg bg-[#e6e2de] px-4 py-3 text-sm font-semibold tracking-wider text-[#7f512f]"
-            >
-              <Package aria-hidden="true" className="size-5" />
-              პროდუქტები
-            </a>
-            <CategoriesLink />
-          </nav>
+          <DashboardNavigation />
         </div>
 
         <div className="border-t border-[#d6c3b8] pt-4">
-          <Button
-            type="button"
-            aria-disabled="true"
-            className="w-full cursor-default"
+          <Link
+            href="/product/new"
+            className="inline-flex h-11.5 w-full items-center justify-center rounded-lg bg-[#7f512f] px-4 text-sm font-semibold tracking-wider text-white transition-colors hover:bg-[#6d4528]"
           >
-            პროდუქტის დამატება
-          </Button>
+            პროდუქტის შექმნა
+          </Link>
           <form action={signOut} className="mt-4">
             <button
               type="submit"
@@ -75,9 +66,9 @@ export default function DashboardLayout({
           priority
           className="size-16 shrink-0 object-contain"
         />
-        <h1 className="min-w-0 flex-1 text-center text-[28px] font-bold tracking-[-0.02em] text-[#7f512f]">
+        <p className="min-w-0 flex-1 text-center text-[28px] font-bold tracking-[-0.02em] text-[#7f512f]">
           ადმინისტრაცია
-        </h1>
+        </p>
         <form action={signOut}>
           <button
             type="submit"
@@ -101,29 +92,17 @@ export default function DashboardLayout({
         </footer>
       </main>
 
-      <button
-        type="button"
-        aria-label="პროდუქტის დამატება"
-        aria-disabled="true"
-        className="fixed bottom-24 right-5 z-30 flex size-14 cursor-default items-center justify-center rounded-3xl bg-[#7f512f] text-white shadow-[0_12px_16px_rgba(168,116,79,0.15)] lg:hidden"
-      >
-        <Plus aria-hidden="true" className="size-6" />
-      </button>
-
-      <nav
-        aria-label="მობილური ნავიგაცია"
-        className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-around rounded-t-xl border-t border-[#d6c3b8]/30 bg-white px-8 py-3 shadow-[0_-10px_20px_rgba(0,0,0,0.04)] lg:hidden"
-      >
-        <a
-          href="/dashboard"
-          aria-current="page"
-          className="flex flex-col items-center gap-1 rounded-full bg-[#e6e2de]/40 px-4 py-1 text-[10px] font-bold text-[#7f512f]"
+      {showAddProduct && (
+        <Link
+          href="/product/new"
+          aria-label="პროდუქტის დამატება"
+          className="fixed bottom-24 right-5 z-30 flex size-14 items-center justify-center rounded-3xl bg-[#7f512f] text-white shadow-[0_12px_16px_rgba(168,116,79,0.15)] lg:hidden"
         >
-          <Package aria-hidden="true" className="size-5" />
-          პროდუქტები
-        </a>
-        <CategoriesLink mobile />
-      </nav>
+          <Plus aria-hidden="true" className="size-6" />
+        </Link>
+      )}
+
+      <DashboardNavigation mobile />
     </div>
   );
 }

@@ -2,18 +2,22 @@ import type { Metadata } from "next";
 import { AlertCircle } from "lucide-react";
 
 import { CategoriesManager } from "@/components/categories/categories-manager";
-import type { Category } from "@/components/categories/types";
+import {
+  categorySelect,
+  normalizeCategories,
+  type CategoryQueryRow,
+} from "@/lib/category-data";
 import { createClient } from "@/lib/server";
 
 export const metadata: Metadata = {
-  title: "კატეგორიები | Home Mix ადმინისტრაცია",
+  title: "კატალოგი | Home Mix ადმინისტრაცია",
 };
 
 export default async function CategoriesPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, slug")
+    .select(categorySelect)
     .order("name", { ascending: true });
 
   return (
@@ -24,15 +28,15 @@ export default async function CategoriesPage() {
             aria-hidden="true"
             className="mx-auto size-9 text-[#c62828]"
           />
-          <h1 className="mt-4 text-2xl font-bold">
-            კატეგორიები ვერ ჩაიტვირთა
-          </h1>
+          <h1 className="mt-4 text-2xl font-bold">კატალოგი ვერ ჩაიტვირთა</h1>
           <p className="mt-2 text-sm leading-6 text-[#605e5b]">
             გთხოვთ, განაახლოთ გვერდი ან მოგვიანებით სცადოთ.
           </p>
         </div>
       ) : (
-        <CategoriesManager categories={(data ?? []) as Category[]} />
+        <CategoriesManager
+          categories={normalizeCategories((data ?? []) as CategoryQueryRow[])}
+        />
       )}
     </section>
   );

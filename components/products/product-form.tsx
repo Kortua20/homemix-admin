@@ -132,7 +132,7 @@ export function ProductForm({ mode, categories, product }: ProductFormProps) {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="product-category">კატეგორია</Label>
+          <Label htmlFor="product-category">კატალოგი</Label>
           <select
             id="product-category"
             name="categoryId"
@@ -147,7 +147,7 @@ export function ProductForm({ mode, categories, product }: ProductFormProps) {
             className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
           >
             <option value="" disabled>
-              აირჩიეთ კატეგორია
+              აირჩიეთ კატალოგი
             </option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
@@ -240,7 +240,7 @@ export function ProductForm({ mode, categories, product }: ProductFormProps) {
 
       {categories.length === 0 && (
         <p className="mt-5 rounded-xl bg-[#fff3cd] px-4 py-3 text-sm font-medium text-[#705500]">
-          პროდუქტის შესაქმნელად ჯერ დაამატეთ მინიმუმ ერთი კატეგორია.
+          პროდუქტის შესაქმნელად ჯერ დაამატეთ მინიმუმ ერთი კატალოგი.
         </p>
       )}
 

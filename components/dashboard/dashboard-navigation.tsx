@@ -10,7 +10,8 @@ export function DashboardNavigation({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
   const productsActive =
     pathname === "/dashboard" || pathname.startsWith("/product/");
-  const categoriesActive = pathname.startsWith("/categories");
+  const categoryActive =
+    pathname.startsWith("/categories") || pathname.startsWith("/category/");
 
   if (mobile) {
     return (
@@ -33,16 +34,16 @@ export function DashboardNavigation({ mobile = false }: { mobile?: boolean }) {
         </Link>
         <Link
           href="/categories"
-          aria-current={categoriesActive ? "page" : undefined}
+          aria-current={categoryActive ? "page" : undefined}
           className={cn(
             "flex flex-col items-center gap-1 rounded-full px-4 py-1 text-[10px]",
-            categoriesActive
+            categoryActive
               ? "bg-[#e6e2de]/40 font-bold text-[#7f512f]"
               : "font-medium text-[#605e5b]",
           )}
         >
           <Shapes aria-hidden="true" className="size-5" />
-          კატეგორიები
+          კატალოგი
         </Link>
       </nav>
     );
@@ -65,16 +66,16 @@ export function DashboardNavigation({ mobile = false }: { mobile?: boolean }) {
       </Link>
       <Link
         href="/categories"
-        aria-current={categoriesActive ? "page" : undefined}
+        aria-current={categoryActive ? "page" : undefined}
         className={cn(
           "flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold tracking-wider",
-          categoriesActive
+          categoryActive
             ? "bg-[#e6e2de] text-[#7f512f]"
             : "text-[#605e5b] transition-colors hover:bg-[#f6f3f2]",
         )}
       >
         <Shapes aria-hidden="true" className="size-5" />
-        კატეგორიები
+        კატალოგი
       </Link>
     </nav>
   );

@@ -8,10 +8,7 @@ import {
   MAX_PRODUCT_IMAGE_SIZE,
   isAllowedProductImage,
 } from "@/lib/product-image-constraints";
-import {
-  deleteR2Objects,
-  uploadProductImage,
-} from "@/lib/r2";
+import { deleteR2Objects, uploadProductImage } from "@/lib/r2";
 import { createClient } from "@/lib/server";
 import { createSlug, isValidSlug } from "@/lib/slug";
 
@@ -66,7 +63,7 @@ function readProductFields(formData: FormData) {
   }
 
   if (!uuidPattern.test(categoryId)) {
-    fieldErrors.categoryId = "აირჩიეთ კატეგორია.";
+    fieldErrors.categoryId = "აირჩიეთ კატალოგი.";
   }
 
   return {
@@ -78,19 +75,14 @@ function readProductFields(formData: FormData) {
 function readProductImageFiles(formData: FormData) {
   const files = formData
     .getAll("images")
-    .filter(
-      (entry): entry is File =>
-        entry instanceof File && entry.size > 0,
-    );
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
   let error: string | undefined;
 
   if (files.length > MAX_PRODUCT_IMAGES) {
     error = `შეგიძლიათ დაამატოთ მაქსიმუმ ${MAX_PRODUCT_IMAGES} ფოტო.`;
   } else if (files.some((file) => !isAllowedProductImage(file))) {
     error = "დაშვებულია მხოლოდ JPG, PNG და WebP ფორმატის ფოტოები.";
-  } else if (
-    files.some((file) => file.size > MAX_PRODUCT_IMAGE_SIZE)
-  ) {
+  } else if (files.some((file) => file.size > MAX_PRODUCT_IMAGE_SIZE)) {
     error = "თითოეული ფოტო არ უნდა აღემატებოდეს 5 მბ-ს.";
   }
 
@@ -98,17 +90,12 @@ function readProductImageFiles(formData: FormData) {
 }
 
 function readDeletedImageIds(formData: FormData) {
-  const ids = formData
-    .getAll("deleteImageIds")
-    .map(String)
-    .filter(Boolean);
+  const ids = formData.getAll("deleteImageIds").map(String).filter(Boolean);
   const hasInvalidId = ids.some((id) => !uuidPattern.test(id));
 
   return {
     ids: [...new Set(ids)],
-    error: hasInvalidId
-      ? "წასაშლელი ფოტოს მონაცემები არასწორია."
-      : undefined,
+    error: hasInvalidId ? "წასაშლელი ფოტოს მონაცემები არასწორია." : undefined,
   };
 }
 
@@ -163,7 +150,7 @@ function getDatabaseErrorMessage(code?: string) {
   }
 
   if (code === "23503") {
-    return "არჩეული კატეგორია აღარ არსებობს.";
+    return "არჩეული კატალოგი აღარ არსებობს.";
   }
 
   if (code === "23514" || code === "22003") {
@@ -226,18 +213,14 @@ export async function createProduct(
       }
     }
   } catch {
-    await deleteR2Objects(
-      imageRows.map((image) => image.object_key),
-    ).catch(() => undefined);
-    await authorization.supabase
-      .from("products")
-      .delete()
-      .eq("id", data.id);
+    await deleteR2Objects(imageRows.map((image) => image.object_key)).catch(
+      () => undefined,
+    );
+    await authorization.supabase.from("products").delete().eq("id", data.id);
 
     return {
       status: "error",
-      message:
-        "პროდუქტის ფოტოები ვერ აიტვირთა. გთხოვთ, კიდევ სცადოთ.",
+      message: "პროდუქტის ფოტოები ვერ აიტვირთა. გთხოვთ, კიდევ სცადოთ.",
       fieldErrors: {
         images: "ფოტოების ატვირთვა ვერ დასრულდა.",
       },
@@ -301,10 +284,7 @@ export async function updateProduct(
   const remainingImageCount =
     (currentImages?.length ?? 0) - imagesToDelete.length;
 
-  if (
-    remainingImageCount + imageFiles.files.length >
-    MAX_PRODUCT_IMAGES
-  ) {
+  if (remainingImageCount + imageFiles.files.length > MAX_PRODUCT_IMAGES) {
     return {
       status: "error",
       message: "შეამოწმეთ შევსებული ველები.",
@@ -322,16 +302,11 @@ export async function updateProduct(
   let newImageRows: Awaited<ReturnType<typeof uploadImages>> = [];
 
   try {
-    newImageRows = await uploadImages(
-      id,
-      imageFiles.files,
-      nextSortOrder,
-    );
+    newImageRows = await uploadImages(id, imageFiles.files, nextSortOrder);
   } catch {
     return {
       status: "error",
-      message:
-        "ახალი ფოტოები ვერ აიტვირთა. გთხოვთ, კიდევ სცადოთ.",
+      message: "ახალი ფოტოები ვერ აიტვირთა. გთხოვთ, კიდევ სცადოთ.",
       fieldErrors: { images: "ფოტოების ატვირთვა ვერ დასრულდა." },
     };
   }
@@ -344,9 +319,9 @@ export async function updateProduct(
     .maybeSingle();
 
   if (error) {
-    await deleteR2Objects(
-      newImageRows.map((image) => image.object_key),
-    ).catch(() => undefined);
+    await deleteR2Objects(newImageRows.map((image) => image.object_key)).catch(
+      () => undefined,
+    );
 
     return {
       status: "error",
@@ -355,9 +330,9 @@ export async function updateProduct(
   }
 
   if (!data) {
-    await deleteR2Objects(
-      newImageRows.map((image) => image.object_key),
-    ).catch(() => undefined);
+    await deleteR2Objects(newImageRows.map((image) => image.object_key)).catch(
+      () => undefined,
+    );
 
     return {
       status: "error",
@@ -377,8 +352,7 @@ export async function updateProduct(
 
       return {
         status: "error",
-        message:
-          "პროდუქტი განახლდა, მაგრამ ახალი ფოტოები ვერ დაემატა.",
+        message: "პროდუქტი განახლდა, მაგრამ ახალი ფოტოები ვერ დაემატა.",
         fieldErrors: { images: "ფოტოების დამატება ვერ დასრულდა." },
       };
     }
@@ -397,8 +371,7 @@ export async function updateProduct(
     if (deleteImagesError) {
       return {
         status: "error",
-        message:
-          "პროდუქტი განახლდა, მაგრამ მონიშნული ფოტოები ვერ წაიშალა.",
+        message: "პროდუქტი განახლდა, მაგრამ მონიშნული ფოტოები ვერ წაიშალა.",
         fieldErrors: { images: "ფოტოების წაშლა ვერ დასრულდა." },
       };
     }

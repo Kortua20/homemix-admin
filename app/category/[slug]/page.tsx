@@ -3,87 +3,88 @@ import Link from "next/link";
 import { ArrowLeft, ImageOff, Pencil } from "lucide-react";
 import { notFound } from "next/navigation";
 
-import { DeleteProductButton } from "@/components/products/delete-product-button";
+import { DeleteCategoryButton } from "@/components/categories/delete-category-button";
 import {
-  formatPrice,
-  getProductImageUrl,
-  normalizeProduct,
-  productSelect,
-  type ProductQueryRow,
-} from "@/lib/product-data";
+  categorySelect,
+  getCategoryImageUrl,
+  normalizeCategory,
+  type CategoryQueryRow,
+} from "@/lib/category-data";
 import { createClient } from "@/lib/server";
 import { decodeSlugParam } from "@/lib/slug";
 
 export const metadata: Metadata = {
-  title: "პროდუქტის დეტალები | Home Mix ადმინისტრაცია",
+  title: "კატალოგის დეტალები | Home Mix ადმინისტრაცია",
 };
 
-type ProductPageProps = {
+type CategoryPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function ProductPage({ params }: ProductPageProps) {
+export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug: rawSlug } = await params;
   const slug = decodeSlugParam(rawSlug);
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("products")
-    .select(productSelect)
+    .from("categories")
+    .select(categorySelect)
     .eq("slug", slug)
     .maybeSingle();
-  const product = data ? normalizeProduct(data as ProductQueryRow) : null;
+  const category = data
+    ? normalizeCategory(data as CategoryQueryRow)
+    : null;
 
-  if (error || !product) {
+  if (error || !category) {
     notFound();
   }
 
   return (
     <section className="px-5 pb-32 pt-5 lg:px-8 lg:pb-16 lg:pt-12 xl:px-16">
       <Link
-        href="/dashboard"
+        href="/categories"
         className="inline-flex items-center gap-2 text-sm font-semibold text-[#605e5b] transition-colors hover:text-[#7f512f]"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
-        პროდუქტებზე დაბრუნება
+        კატალოგზე დაბრუნება
       </Link>
 
       <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[#7f512f]">
-            {product.category.name}
+            /{category.slug}
           </p>
           <h1 className="mt-2 text-3xl font-bold leading-tight tracking-[-0.02em] lg:text-5xl">
-            {product.name}
+            {category.name}
           </h1>
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:flex lg:shrink-0">
           <Link
-            href={`/product/${product.slug}/edit`}
+            href={`/category/${category.slug}/edit`}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#7f512f] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#6d4528]"
           >
             <Pencil aria-hidden="true" className="size-4" />
             რედაქტირება
           </Link>
-          <DeleteProductButton
-            productId={product.id}
-            productName={product.name}
+          <DeleteCategoryButton
+            categoryId={category.id}
+            categoryName={category.name}
             redirectAfterDelete
           />
         </div>
       </div>
 
       <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:items-start">
-        {product.images.length > 0 ? (
+        {category.images.length > 0 ? (
           <section
-            aria-labelledby="product-photo-heading"
+            aria-labelledby="category-photo-heading"
             className="rounded-3xl bg-white p-3 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-4"
           >
-            <h2 id="product-photo-heading" className="sr-only">
-              პროდუქტის ფოტოები
+            <h2 id="category-photo-heading" className="sr-only">
+              კატალოგის ფოტოები
             </h2>
             <div className="grid grid-cols-2 gap-3">
-              {product.images.map((image, index) => (
+              {category.images.map((image, index) => (
                 <div
                   key={image.id}
                   className={
@@ -94,8 +95,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={getProductImageUrl(image.id)}
-                    alt={`${product.name} — ფოტო ${index + 1}`}
+                    src={getCategoryImageUrl(image.id)}
+                    alt={`${category.name} — ფოტო ${index + 1}`}
                     className="size-full object-cover"
                   />
                 </div>
@@ -104,58 +105,52 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </section>
         ) : (
           <section
-            aria-labelledby="product-photo-heading"
+            aria-labelledby="category-photo-heading"
             className="flex min-h-72 flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:min-h-115"
           >
             <ImageOff aria-hidden="true" className="size-12 text-[#a89082]" />
-            <h2 id="product-photo-heading" className="mt-4 text-xl font-bold">
+            <h2 id="category-photo-heading" className="mt-4 text-xl font-bold">
               ფოტოები ჯერ არ არის
             </h2>
             <p className="mt-2 max-w-sm text-sm leading-6 text-[#605e5b]">
-              ფოტოების დამატება პროდუქტის რედაქტირების გვერდიდან შეგიძლიათ.
+              ფოტოების დამატება კატალოგის რედაქტირების გვერდიდან შეგიძლიათ.
             </p>
           </section>
         )}
 
         <div className="grid gap-4">
           <section
-            aria-labelledby="general-information-heading"
+            aria-labelledby="category-information-heading"
             className="rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-7"
           >
-            <h2 id="general-information-heading" className="text-xl font-bold">
+            <h2 id="category-information-heading" className="text-xl font-bold">
               ზოგადი ინფორმაცია
             </h2>
             <dl className="mt-5 divide-y divide-[#e4e2e1]">
               <div className="flex items-center justify-between gap-4 py-4 first:pt-0">
                 <dt className="text-sm text-[#605e5b]">დასახელება</dt>
                 <dd className="max-w-[65%] text-right text-sm font-semibold">
-                  {product.name}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4 py-4">
-                <dt className="text-sm text-[#605e5b]">კატალოგი</dt>
-                <dd className="text-right text-sm font-semibold">
-                  {product.category.name}
+                  {category.name}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4 pb-0 pt-4">
-                <dt className="text-sm text-[#605e5b]">ფასი</dt>
-                <dd className="text-xl font-bold text-[#7f512f]">
-                  {formatPrice(product.price)} ₾
+                <dt className="text-sm text-[#605e5b]">სლაგი</dt>
+                <dd className="text-right text-sm font-semibold">
+                  /{category.slug}
                 </dd>
               </div>
             </dl>
           </section>
 
           <section
-            aria-labelledby="product-description-heading"
+            aria-labelledby="category-description-heading"
             className="rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-7"
           >
-            <h2 id="product-description-heading" className="text-xl font-bold">
+            <h2 id="category-description-heading" className="text-xl font-bold">
               აღწერა
             </h2>
             <p className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-[#605e5b]">
-              {product.description || "აღწერა არ არის დამატებული."}
+              {category.description || "აღწერა არ არის დამატებული."}
             </p>
           </section>
         </div>

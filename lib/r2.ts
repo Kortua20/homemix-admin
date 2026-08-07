@@ -51,14 +51,14 @@ function getR2Config(): R2Config {
   return cachedConfig;
 }
 
-export async function uploadProductImage(productId: string, file: File) {
+async function uploadImage(prefix: "products" | "categories", id: string, file: File) {
   const extension = imageExtensions[file.type];
 
   if (!extension) {
-    throw new Error("UNSUPPORTED_PRODUCT_IMAGE");
+    throw new Error("UNSUPPORTED_IMAGE");
   }
 
-  const objectKey = `products/${productId}/${crypto.randomUUID()}.${extension}`;
+  const objectKey = `${prefix}/${id}/${crypto.randomUUID()}.${extension}`;
   const { bucket, client } = getR2Config();
 
   await client.send(
@@ -80,6 +80,14 @@ export async function uploadProductImage(productId: string, file: File) {
     contentType: file.type,
     sizeBytes: file.size,
   };
+}
+
+export async function uploadProductImage(productId: string, file: File) {
+  return uploadImage("products", productId, file);
+}
+
+export async function uploadCategoryImage(categoryId: string, file: File) {
+  return uploadImage("categories", categoryId, file);
 }
 
 export async function deleteR2Objects(objectKeys: string[]) {

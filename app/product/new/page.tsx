@@ -43,9 +43,7 @@ export default async function NewProductPage() {
             aria-hidden="true"
             className="mx-auto size-9 text-[#c62828]"
           />
-          <h2 className="mt-4 text-xl font-bold">
-            კატეგორიები ვერ ჩაიტვირთა
-          </h2>
+          <h2 className="mt-4 text-xl font-bold">კატალოგი ვერ ჩაიტვირთა</h2>
           <p className="mt-2 text-sm text-[#605e5b]">
             პროდუქტის შექმნამდე განაახლეთ გვერდი და კიდევ სცადეთ.
           </p>

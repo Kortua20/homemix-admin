@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import {
   MAX_PRODUCT_IMAGES,
   MAX_PRODUCT_IMAGE_SIZE,
+  MAX_PRODUCT_IMAGE_UPLOAD_TOTAL,
   isAllowedProductImage,
 } from "@/lib/product-image-constraints";
 import { deleteR2Objects, uploadProductImage } from "@/lib/r2";
@@ -84,6 +85,11 @@ function readProductImageFiles(formData: FormData) {
     error = "დაშვებულია მხოლოდ JPG, PNG და WebP ფორმატის ფოტოები.";
   } else if (files.some((file) => file.size > MAX_PRODUCT_IMAGE_SIZE)) {
     error = "თითოეული ფოტო არ უნდა აღემატებოდეს 5 მბ-ს.";
+  } else if (
+    files.reduce((total, file) => total + file.size, 0) >
+    MAX_PRODUCT_IMAGE_UPLOAD_TOTAL
+  ) {
+    error = "ფოტოების საერთო ზომა ძალიან დიდია. გთხოვთ, ამოიღოთ ერთი ან რამდენიმე ფოტო.";
   }
 
   return { files, error };

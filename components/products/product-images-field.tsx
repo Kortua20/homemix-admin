@@ -8,20 +8,29 @@ import { Label } from "@/components/ui/label";
 import {
   MAX_PRODUCT_IMAGES,
   MAX_PRODUCT_IMAGE_SIZE,
+  MAX_PRODUCT_IMAGE_SOURCE_SIZE,
+  MAX_PRODUCT_IMAGE_UPLOAD_TOTAL,
   PRODUCT_IMAGE_ACCEPT,
-  PRODUCT_IMAGE_TYPES,
+  PRODUCT_IMAGE_SOURCE_TYPES,
 } from "@/lib/product-image-constraints";
 import { getProductImageUrl } from "@/lib/product-data";
+import { optimizeProductImage } from "@/lib/product-image-optimization";
 
 type ProductImagesFieldProps = {
   existingImages?: ProductImage[];
+  onProcessingChange?: (processing: boolean) => void;
   serverError?: string;
 };
 
 type SelectedImage = {
   file: File;
   previewUrl: string;
+  sourceKey: string;
 };
+
+function getFileKey(file: File) {
+  return `${file.name}-${file.size}-${file.lastModified}`;
+}
 
 function NewImagePreview({
   image,
@@ -61,6 +70,7 @@ function formatFileSize(size: number) {
 
 export function ProductImagesField({
   existingImages = [],
+  onProcessingChange,
   serverError,
 }: ProductImagesFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,6 +78,7 @@ export function ProductImagesField({
   const [newImages, setNewImages] = useState<SelectedImage[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
   const [localError, setLocalError] = useState("");
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     const previewUrls = previewUrlsRef.current;
@@ -88,28 +99,31 @@ export function ProductImagesField({
     inputRef.current.files = transfer.files;
   }
 
-  function handleFilesSelected(
+  async function handleFilesSelected(
     event: React.ChangeEvent<HTMLInputElement>,
   ) {
     const selectedFiles = Array.from(event.target.files ?? []);
-    const filesToAdd = selectedFiles.filter(
-      (file) =>
-        !newImages.some(
-          (existingImage) =>
-            existingImage.file.name === file.name &&
-            existingImage.file.size === file.size &&
-            existingImage.file.lastModified === file.lastModified,
-        ),
+    const existingSourceKeys = new Set(
+      newImages.map((image) => image.sourceKey),
     );
-    const mergedFiles = [
-      ...newImages.map((image) => image.file),
-      ...filesToAdd,
-    ];
+    const filesToAdd = selectedFiles.filter((file) => {
+      const sourceKey = getFileKey(file);
+
+      if (existingSourceKeys.has(sourceKey)) {
+        return false;
+      }
+
+      existingSourceKeys.add(sourceKey);
+      return true;
+    });
 
     const visibleExistingCount =
       existingImages.length - deletedImageIds.length;
 
-    if (visibleExistingCount + mergedFiles.length > MAX_PRODUCT_IMAGES) {
+    if (
+      visibleExistingCount + newImages.length + filesToAdd.length >
+      MAX_PRODUCT_IMAGES
+    ) {
       setLocalError(
         `პროდუქტს შეიძლება ჰქონდეს მაქსიმუმ ${MAX_PRODUCT_IMAGES} ფოტო.`,
       );
@@ -118,34 +132,79 @@ export function ProductImagesField({
     }
 
     if (
-      mergedFiles.some(
+      filesToAdd.some(
         (file) =>
-          !PRODUCT_IMAGE_TYPES.some((type) => type === file.type),
+          !PRODUCT_IMAGE_SOURCE_TYPES.some((type) => type === file.type),
       )
     ) {
-      setLocalError("დაშვებულია მხოლოდ JPG, PNG და WebP ფორმატები.");
+      setLocalError("დაშვებულია მხოლოდ JPG, PNG, WebP, HEIC და HEIF ფორმატები.");
       syncInputFiles(newImages.map((image) => image.file));
       return;
     }
 
     if (
-      mergedFiles.some((file) => file.size > MAX_PRODUCT_IMAGE_SIZE)
+      filesToAdd.some((file) => file.size > MAX_PRODUCT_IMAGE_SOURCE_SIZE)
     ) {
-      setLocalError("თითოეული ფოტო არ უნდა აღემატებოდეს 5 მბ-ს.");
+      setLocalError("თითოეული საწყისი ფოტო არ უნდა აღემატებოდეს 20 მბ-ს.");
       syncInputFiles(newImages.map((image) => image.file));
       return;
     }
 
-    const addedImages = filesToAdd.map((file) => {
-      const previewUrl = URL.createObjectURL(file);
-      previewUrlsRef.current.add(previewUrl);
-      return { file, previewUrl };
-    });
-    const mergedImages = [...newImages, ...addedImages];
-
+    setProcessing(true);
+    onProcessingChange?.(true);
     setLocalError("");
-    setNewImages(mergedImages);
-    syncInputFiles(mergedFiles);
+
+    try {
+      const optimizedFiles: Array<{ file: File; sourceKey: string }> = [];
+
+      for (const file of filesToAdd) {
+        const optimizedFile = await optimizeProductImage(file);
+
+        if (optimizedFile.size > MAX_PRODUCT_IMAGE_SIZE) {
+          throw new Error("IMAGE_TOO_LARGE_AFTER_OPTIMIZATION");
+        }
+
+        optimizedFiles.push({
+          file: optimizedFile,
+          sourceKey: getFileKey(file),
+        });
+      }
+
+      const mergedFiles = [
+        ...newImages.map((image) => image.file),
+        ...optimizedFiles.map((image) => image.file),
+      ];
+      const totalUploadSize = mergedFiles.reduce(
+        (total, file) => total + file.size,
+        0,
+      );
+
+      if (totalUploadSize > MAX_PRODUCT_IMAGE_UPLOAD_TOTAL) {
+        setLocalError(
+          "ფოტოების საერთო ზომა ჯერ კიდევ ძალიან დიდია. გთხოვთ, ამოიღოთ ერთი ან რამდენიმე ფოტო.",
+        );
+        syncInputFiles(newImages.map((image) => image.file));
+        return;
+      }
+
+      const addedImages = optimizedFiles.map(({ file, sourceKey }) => {
+        const previewUrl = URL.createObjectURL(file);
+        previewUrlsRef.current.add(previewUrl);
+        return { file, previewUrl, sourceKey };
+      });
+      const mergedImages = [...newImages, ...addedImages];
+
+      setNewImages(mergedImages);
+      syncInputFiles(mergedFiles);
+    } catch {
+      setLocalError(
+        "ფოტოების დამუშავება ვერ მოხერხდა. სცადეთ სხვა ფოტო ან ფორმატი.",
+      );
+      syncInputFiles(newImages.map((image) => image.file));
+    } finally {
+      setProcessing(false);
+      onProcessingChange?.(false);
+    }
   }
 
   function removeNewFile(index: number) {
@@ -230,14 +289,15 @@ export function ProductImagesField({
 
       <label
         htmlFor="product-images"
-        className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#c9b2a4] bg-[#fcf9f8] px-5 py-6 text-center transition-colors hover:border-[#7f512f] hover:bg-[#f9f3ef]"
+        aria-disabled={processing}
+        className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#c9b2a4] bg-[#fcf9f8] px-5 py-6 text-center transition-colors hover:border-[#7f512f] hover:bg-[#f9f3ef] aria-disabled:cursor-wait aria-disabled:opacity-60"
       >
         <ImagePlus aria-hidden="true" className="size-7 text-[#7f512f]" />
         <span className="mt-2 text-sm font-semibold text-[#1b1c1c]">
           ფოტოების არჩევა
         </span>
         <span className="mt-1 text-xs leading-5 text-[#605e5b]">
-          JPG, PNG ან WebP · მაქსიმუმ 5 მბ თითოეულზე
+          JPG, PNG, WebP ან iPhone ფოტო · დიდი ფოტოები ავტომატურად შემცირდება
         </span>
       </label>
       <input
@@ -248,6 +308,7 @@ export function ProductImagesField({
         accept={PRODUCT_IMAGE_ACCEPT}
         multiple
         onChange={handleFilesSelected}
+        disabled={processing}
         className="sr-only"
         aria-invalid={Boolean(error)}
         aria-describedby={error ? "product-images-error" : undefined}
@@ -263,6 +324,12 @@ export function ProductImagesField({
             ),
           )}{" "}
           მბ).
+        </p>
+      )}
+
+      {processing && (
+        <p className="text-xs font-medium text-[#7f512f]" aria-live="polite">
+          ფოტოების ოპტიმიზაცია მიმდინარეობს...
         </p>
       )}
 

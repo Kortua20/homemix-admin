@@ -36,6 +36,7 @@ export function ProductForm({ mode, categories, product }: ProductFormProps) {
   const [name, setName] = useState(product?.name ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
   const [slugEdited, setSlugEdited] = useState(false);
+  const [imagesProcessing, setImagesProcessing] = useState(false);
   const cancelHref =
     mode === "edit" && product ? `/product/${product.slug}` : "/dashboard";
 
@@ -234,6 +235,7 @@ export function ProductForm({ mode, categories, product }: ProductFormProps) {
 
         <ProductImagesField
           existingImages={product?.images}
+          onProcessingChange={setImagesProcessing}
           serverError={state.fieldErrors?.images}
         />
       </div>
@@ -262,10 +264,10 @@ export function ProductForm({ mode, categories, product }: ProductFormProps) {
         </Link>
         <Button
           type="submit"
-          disabled={pending || categories.length === 0}
+          disabled={pending || imagesProcessing || categories.length === 0}
           className="min-w-40"
         >
-          {pending && (
+          {(pending || imagesProcessing) && (
             <LoaderCircle
               aria-hidden="true"
               className="mr-2 size-4 animate-spin"

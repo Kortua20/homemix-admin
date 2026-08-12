@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { createPortal } from "react-dom";
 import { LoaderCircle, Trash2, X } from "lucide-react";
 
 import {
@@ -33,7 +34,7 @@ function DeleteProductDialog({
     initialProductActionState,
   );
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#1b1c1c]/45 backdrop-blur-[2px] sm:items-center sm:p-5">
       <section
         role="dialog"
@@ -119,7 +120,8 @@ function DeleteProductDialog({
           </form>
         )}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

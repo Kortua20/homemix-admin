@@ -8,7 +8,6 @@ import {
   categorySelect,
   getCategoryImageUrl,
   normalizeCategory,
-  type CategoryQueryRow,
 } from "@/lib/category-data";
 import { createClient } from "@/lib/server";
 import { decodeSlugParam } from "@/lib/slug";
@@ -30,9 +29,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     .select(categorySelect)
     .eq("slug", slug)
     .maybeSingle();
-  const category = data
-    ? normalizeCategory(data as CategoryQueryRow)
-    : null;
+  const category = data ? normalizeCategory(data) : null;
 
   if (error || !category) {
     notFound();

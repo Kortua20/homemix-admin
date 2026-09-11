@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 import { AlertCircle } from "lucide-react";
 
 import { CategoriesManager } from "@/components/categories/categories-manager";
-import {
-  categorySelect,
-  normalizeCategories,
-  type CategoryQueryRow,
-} from "@/lib/category-data";
+import { categorySelect, normalizeCategories } from "@/lib/category-data";
 import { createClient } from "@/lib/server";
 
 export const metadata: Metadata = {
@@ -35,7 +31,7 @@ export default async function CategoriesPage() {
         </div>
       ) : (
         <CategoriesManager
-          categories={normalizeCategories((data ?? []) as CategoryQueryRow[])}
+          categories={normalizeCategories(data ?? [])}
         />
       )}
     </section>

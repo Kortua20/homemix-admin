@@ -9,7 +9,6 @@ import {
   getProductImageUrl,
   normalizeProduct,
   productSelect,
-  type ProductQueryRow,
 } from "@/lib/product-data";
 import { createClient } from "@/lib/server";
 import { decodeSlugParam } from "@/lib/slug";
@@ -31,7 +30,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     .select(productSelect)
     .eq("slug", slug)
     .maybeSingle();
-  const product = data ? normalizeProduct(data as ProductQueryRow) : null;
+  const product = data ? normalizeProduct(data) : null;
 
   if (error || !product) {
     notFound();

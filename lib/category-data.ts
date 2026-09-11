@@ -1,4 +1,7 @@
+import type { QueryData, SupabaseClient } from "@supabase/supabase-js";
+
 import type { Category, CategoryImage } from "@/components/categories/types";
+import type { Database } from "@/lib/database.types";
 
 export const categorySelect = `
   id,
@@ -15,22 +18,17 @@ export const categorySelect = `
   )
 `;
 
-type CategoryImageQueryRow = {
-  id: string;
-  original_name: string;
-  content_type: string;
-  size_bytes: number | string;
-  sort_order: number;
-  created_at: string;
-};
+// Derived from the query itself rather than hand-written, so a schema change shows up
+// here as a type error instead of being silently papered over at each call site.
+function categoryQuery(supabase: SupabaseClient<Database>) {
+  return supabase.from("categories").select(categorySelect);
+}
 
-export type CategoryQueryRow = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  images: CategoryImageQueryRow[] | null;
-};
+export type CategoryQueryRow = QueryData<
+  ReturnType<typeof categoryQuery>
+>[number];
+
+type CategoryImageQueryRow = CategoryQueryRow["images"][number];
 
 function normalizeCategoryImage(row: CategoryImageQueryRow): CategoryImage {
   return {

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 
 import { ProductForm } from "@/components/products/product-form";
-import type { ProductCategory } from "@/components/products/types";
 import { createClient } from "@/lib/server";
 
 export const metadata: Metadata = {
@@ -49,10 +48,7 @@ export default async function NewProductPage() {
           </p>
         </div>
       ) : (
-        <ProductForm
-          mode="create"
-          categories={(data ?? []) as ProductCategory[]}
-        />
+        <ProductForm mode="create" categories={data ?? []} />
       )}
     </section>
   );

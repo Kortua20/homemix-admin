@@ -1,8 +1,7 @@
-import type {
-  Product,
-  ProductCategory,
-  ProductImage,
-} from "@/components/products/types";
+import type { QueryData, SupabaseClient } from "@supabase/supabase-js";
+
+import type { Product, ProductImage } from "@/components/products/types";
+import type { Database } from "@/lib/database.types";
 
 export const productSelect = `
   id,
@@ -28,27 +27,15 @@ export const productSelect = `
   )
 `;
 
-type ProductImageQueryRow = {
-  id: string;
-  original_name: string;
-  content_type: string;
-  size_bytes: number | string;
-  sort_order: number;
-  created_at: string;
-};
+// Derived from the query itself rather than hand-written, so a schema change shows up
+// here as a type error instead of being silently papered over at each call site.
+function productQuery(supabase: SupabaseClient<Database>) {
+  return supabase.from("products").select(productSelect);
+}
 
-export type ProductQueryRow = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  price: number | string;
-  category_id: string;
-  created_at: string;
-  updated_at: string;
-  category: ProductCategory | ProductCategory[] | null;
-  images: ProductImageQueryRow[] | null;
-};
+export type ProductQueryRow = QueryData<ReturnType<typeof productQuery>>[number];
+
+type ProductImageQueryRow = ProductQueryRow["images"][number];
 
 function normalizeProductImage(row: ProductImageQueryRow): ProductImage {
   return {
@@ -62,9 +49,7 @@ function normalizeProductImage(row: ProductImageQueryRow): ProductImage {
 }
 
 export function normalizeProduct(row: ProductQueryRow): Product | null {
-  const category = Array.isArray(row.category)
-    ? row.category[0]
-    : row.category;
+  const category = row.category;
 
   if (!category) {
     return null;

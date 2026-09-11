@@ -4,12 +4,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { ProductForm } from "@/components/products/product-form";
-import type { ProductCategory } from "@/components/products/types";
-import {
-  normalizeProduct,
-  productSelect,
-  type ProductQueryRow,
-} from "@/lib/product-data";
+import { normalizeProduct, productSelect } from "@/lib/product-data";
 import { createClient } from "@/lib/server";
 import { decodeSlugParam } from "@/lib/slug";
 
@@ -36,7 +31,7 @@ export default async function EditProductPage({
     supabase.from("categories").select("id, name, slug").order("name"),
   ]);
   const product = productResult.data
-    ? normalizeProduct(productResult.data as ProductQueryRow)
+    ? normalizeProduct(productResult.data)
     : null;
 
   if (productResult.error || !product) {
@@ -78,7 +73,7 @@ export default async function EditProductPage({
         <ProductForm
           mode="edit"
           product={product}
-          categories={(categoriesResult.data ?? []) as ProductCategory[]}
+          categories={categoriesResult.data ?? []}
         />
       )}
     </section>

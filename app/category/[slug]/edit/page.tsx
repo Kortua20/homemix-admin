@@ -4,11 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { CategoryForm } from "@/components/categories/category-form";
-import {
-  categorySelect,
-  normalizeCategory,
-  type CategoryQueryRow,
-} from "@/lib/category-data";
+import { categorySelect, normalizeCategory } from "@/lib/category-data";
 import { createClient } from "@/lib/server";
 import { decodeSlugParam } from "@/lib/slug";
 
@@ -31,9 +27,7 @@ export default async function EditCategoryPage({
     .select(categorySelect)
     .eq("slug", slug)
     .maybeSingle();
-  const category = data
-    ? normalizeCategory(data as CategoryQueryRow)
-    : null;
+  const category = data ? normalizeCategory(data) : null;
 
   if (error || !category) {
     notFound();

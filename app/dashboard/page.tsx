@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { ProductsDashboard } from "@/components/dashboard/products-dashboard";
-import {
-  normalizeProducts,
-  productSelect,
-  type ProductQueryRow,
-} from "@/lib/product-data";
+import { normalizeProducts, productSelect } from "@/lib/product-data";
 import { createClient } from "@/lib/server";
 
 export const metadata: Metadata = {
@@ -25,9 +21,7 @@ export default async function DashboardPage() {
     .from("products")
     .select(productSelect)
     .order("created_at", { ascending: false });
-  const products = error
-    ? []
-    : normalizeProducts((data ?? []) as ProductQueryRow[]);
+  const products = error ? [] : normalizeProducts(data ?? []);
 
   return <ProductsDashboard products={products} loadError={Boolean(error)} />;
 }

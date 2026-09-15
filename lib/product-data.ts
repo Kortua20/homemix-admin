@@ -1,6 +1,11 @@
 import type { QueryData, SupabaseClient } from "@supabase/supabase-js";
 
-import type { Product, ProductImage } from "@/components/products/types";
+import type {
+  ListingKind,
+  Product,
+  ProductImage,
+  ProductStatus,
+} from "@/components/products/types";
 import type { Database } from "@/lib/database.types";
 
 export const productSelect = `
@@ -12,6 +17,37 @@ export const productSelect = `
   category_id,
   created_at,
   updated_at,
+  status,
+  listing_kind,
+  condition_summary,
+  stock_quantity,
+  width_cm,
+  depth_cm,
+  height_cm,
+  seat_height_cm,
+  weight_kg,
+  dimension_note,
+  conditionGrade:condition_grades!products_condition_grade_fkey (
+    code,
+    sort_order,
+    label_ka,
+    label_en,
+    description_ka
+  ),
+  conditionAspects:product_condition_aspects (
+    aspect_code,
+    grade_code,
+    note
+  ),
+  flaws:product_flaws (
+    id,
+    image_id,
+    flaw_type,
+    severity,
+    location_ka,
+    note_ka,
+    sort_order
+  ),
   category:categories!products_category_id_fkey (
     id,
     name,
@@ -55,6 +91,8 @@ export function normalizeProduct(row: ProductQueryRow): Product | null {
     return null;
   }
 
+  const grade = row.conditionGrade;
+
   return {
     id: row.id,
     slug: row.slug,
@@ -70,6 +108,45 @@ export function normalizeProduct(row: ProductQueryRow): Product | null {
           first.sortOrder - second.sortOrder ||
           first.createdAt.localeCompare(second.createdAt),
       ),
+    status: row.status as ProductStatus,
+    listingKind: row.listing_kind as ListingKind,
+    conditionGrade: grade
+      ? {
+          code: grade.code,
+          sortOrder: grade.sort_order,
+          labelKa: grade.label_ka,
+          labelEn: grade.label_en,
+          descriptionKa: grade.description_ka,
+        }
+      : null,
+    conditionSummary: row.condition_summary ?? "",
+    stockQuantity: row.stock_quantity === null ? null : Number(row.stock_quantity),
+    conditionAspects: (row.conditionAspects ?? []).map((aspect) => ({
+      aspectCode: aspect.aspect_code,
+      gradeCode: aspect.grade_code,
+      note: aspect.note,
+    })),
+    flaws: (row.flaws ?? [])
+      .map((flaw) => ({
+        id: flaw.id,
+        imageId: flaw.image_id,
+        flawType: flaw.flaw_type,
+        severity: flaw.severity,
+        locationKa: flaw.location_ka,
+        noteKa: flaw.note_ka,
+        sortOrder: flaw.sort_order,
+      }))
+      .sort((first, second) => first.sortOrder - second.sortOrder),
+    // Number(null) is 0, so each field is guarded: a missing measurement must stay null.
+    dimensions: {
+      widthCm: row.width_cm === null ? null : Number(row.width_cm),
+      depthCm: row.depth_cm === null ? null : Number(row.depth_cm),
+      heightCm: row.height_cm === null ? null : Number(row.height_cm),
+      seatHeightCm:
+        row.seat_height_cm === null ? null : Number(row.seat_height_cm),
+      weightKg: row.weight_kg === null ? null : Number(row.weight_kg),
+      note: row.dimension_note,
+    },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -91,3 +168,18 @@ export function formatPrice(price: number) {
 export function getProductImageUrl(imageId: string) {
   return `/api/product-images/${imageId}`;
 }
+
+// Georgian labels for the status values. The database constrains the set; this only names
+// them for display.
+export const PRODUCT_STATUS_LABELS: Record<ProductStatus, string> = {
+  draft: "მონახაზი",
+  available: "ხელმისაწვდომი",
+  reserved: "დაჯავშნილი",
+  sold: "გაყიდული",
+  archived: "დაარქივებული",
+};
+
+export const LISTING_KIND_LABELS: Record<ListingKind, string> = {
+  used_unique: "მეორადი",
+  new_stocked: "ახალი",
+};

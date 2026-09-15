@@ -41,6 +41,7 @@ export type ProductActionState = {
     stockQuantity?: string;
     flaws?: string;
     dimensions?: string;
+    attributes?: string;
   };
 };
 
@@ -383,6 +384,84 @@ function readConditionAspects(
   return { rows, error };
 }
 
+// Attribute codes arrive as repeated checkbox values. Deduplicated because a malformed
+// submit could repeat one, which the composite primary key would reject with a raw 23505
+// after the product write had already happened.
+//
+// Codes are NOT validated against the vocabulary here: unlike a flaw's image_id, these
+// reference global lookup tables, so the foreign key alone is a complete check — there is
+// no per-product ownership to enforce. An unknown code surfaces as a 23503 and is mapped
+// to a readable message by getDatabaseErrorMessage.
+function readAttributeCodes(formData: FormData, field: string) {
+  const codes = formData
+    .getAll(field)
+    .map(String)
+    .map((code) => code.trim())
+    .filter(Boolean);
+
+  return [...new Set(codes)];
+}
+
+type AttributeWrite = {
+  materials: { product_id: string; material_code: string }[];
+  colours: { product_id: string; colour_code: string }[];
+  styles: { product_id: string; style_code: string }[];
+};
+
+function readAttributes(formData: FormData, productId: string): AttributeWrite {
+  return {
+    materials: readAttributeCodes(formData, "materialCodes").map((code) => ({
+      product_id: productId,
+      material_code: code,
+    })),
+    colours: readAttributeCodes(formData, "colourCodes").map((code) => ({
+      product_id: productId,
+      colour_code: code,
+    })),
+    styles: readAttributeCodes(formData, "styleCodes").map((code) => ({
+      product_id: productId,
+      style_code: code,
+    })),
+  };
+}
+
+// Replaced wholesale rather than diffed, matching the condition detail above: the form
+// always submits the complete set, so delete-then-insert cannot leave behind an attribute
+// the user unchecked in the browser.
+async function writeAttributes(
+  supabase: NonNullable<Awaited<ReturnType<typeof getAuthorizedClient>>["supabase"]>,
+  productId: string,
+  attributes: AttributeWrite,
+  replaceExisting: boolean,
+) {
+  if (replaceExisting) {
+    await supabase.from("product_materials").delete().eq("product_id", productId);
+    await supabase.from("product_colours").delete().eq("product_id", productId);
+    await supabase.from("product_styles").delete().eq("product_id", productId);
+  }
+
+  if (attributes.materials.length > 0) {
+    const { error } = await supabase
+      .from("product_materials")
+      .insert(attributes.materials);
+    if (error) throw error;
+  }
+
+  if (attributes.colours.length > 0) {
+    const { error } = await supabase
+      .from("product_colours")
+      .insert(attributes.colours);
+    if (error) throw error;
+  }
+
+  if (attributes.styles.length > 0) {
+    const { error } = await supabase
+      .from("product_styles")
+      .insert(attributes.styles);
+    if (error) throw error;
+  }
+}
+
 function readDeletedImageIds(formData: FormData) {
   const ids = formData.getAll("deleteImageIds").map(String).filter(Boolean);
   const hasInvalidId = ids.some((id) => !uuidPattern.test(id));
@@ -452,6 +531,18 @@ function getDatabaseErrorMessage(code?: string, constraint?: string) {
 
   if (code === "23505") {
     return "ამ სლაგით პროდუქტი უკვე არსებობს. გთხოვთ, სლაგი შეცვალოთ.";
+  }
+
+  if (code === "23503" && constraint?.includes("material")) {
+    return "არჩეული მასალა აღარ არსებობს.";
+  }
+
+  if (code === "23503" && constraint?.includes("colour")) {
+    return "არჩეული ფერი აღარ არსებობს.";
+  }
+
+  if (code === "23503" && constraint?.includes("style")) {
+    return "არჩეული სტილი აღარ არსებობს.";
   }
 
   if (code === "23503") {
@@ -548,6 +639,15 @@ export async function createProduct(
         if (flawError) throw flawError;
       }
     }
+
+    // Attributes apply to both listing kinds, so this sits outside the used_unique branch.
+    // Inside the try: a failure here rolls the whole product back, same as the flaws.
+    await writeAttributes(
+      authorization.supabase,
+      data.id,
+      readAttributes(formData, data.id),
+      false,
+    );
   } catch (imageError) {
     await deleteR2Objects(imageRows.map((image) => image.object_key)).catch(
       () => undefined,
@@ -775,6 +875,30 @@ export async function updateProduct(
         };
       }
     }
+  }
+
+  // Replaced wholesale, like the condition detail above. Outside the used_unique branch
+  // because a new stocked product has materials and colours too.
+  try {
+    await writeAttributes(
+      authorization.supabase,
+      id,
+      readAttributes(formData, id),
+      true,
+    );
+  } catch (attributeError) {
+    const databaseError = attributeError as {
+      code?: string;
+      constraint?: string;
+    };
+
+    return {
+      status: "error",
+      message: databaseError?.code
+        ? getDatabaseErrorMessage(databaseError.code, databaseError.constraint)
+        : "პროდუქტი განახლდა, მაგრამ მასალა/ფერი ვერ შეინახა.",
+      fieldErrors: { attributes: "მასალის და ფერის შენახვა ვერ დასრულდა." },
+    };
   }
 
   if (imagesToDelete.length > 0) {

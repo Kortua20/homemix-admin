@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -101,6 +96,30 @@ export type Database = {
           },
         ]
       }
+      colours: {
+        Row: {
+          code: string
+          hex: string
+          label_en: string
+          label_ka: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          hex: string
+          label_en: string
+          label_ka: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          hex?: string
+          label_en?: string
+          label_ka?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       condition_aspects: {
         Row: {
           code: string
@@ -148,6 +167,57 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      materials: {
+        Row: {
+          code: string
+          label_en: string
+          label_ka: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          label_en: string
+          label_ka: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          label_en?: string
+          label_ka?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      product_colours: {
+        Row: {
+          colour_code: string
+          product_id: string
+        }
+        Insert: {
+          colour_code: string
+          product_id: string
+        }
+        Update: {
+          colour_code?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_colours_colour_code_fkey"
+            columns: ["colour_code"]
+            isOneToOne: false
+            referencedRelation: "colours"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "product_colours_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_condition_aspects: {
         Row: {
@@ -293,6 +363,66 @@ export type Database = {
           },
         ]
       }
+      product_materials: {
+        Row: {
+          material_code: string
+          product_id: string
+        }
+        Insert: {
+          material_code: string
+          product_id: string
+        }
+        Update: {
+          material_code?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_materials_material_code_fkey"
+            columns: ["material_code"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "product_materials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_styles: {
+        Row: {
+          product_id: string
+          style_code: string
+        }
+        Insert: {
+          product_id: string
+          style_code: string
+        }
+        Update: {
+          product_id?: string
+          style_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_styles_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_styles_style_code_fkey"
+            columns: ["style_code"]
+            isOneToOne: false
+            referencedRelation: "styles"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       products: {
         Row: {
           category_id: string
@@ -373,6 +503,27 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      styles: {
+        Row: {
+          code: string
+          label_en: string
+          label_ka: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          label_en: string
+          label_ka: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          label_en?: string
+          label_ka?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -526,3 +677,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

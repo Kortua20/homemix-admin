@@ -23,6 +23,15 @@ export type ConditionGrade = {
   descriptionKa: string;
 };
 
+// A material, colour or style. `hex` is present only on colours.
+export type ProductAttribute = {
+  code: string;
+  sortOrder: number;
+  labelKa: string;
+  labelEn: string;
+  hex?: string;
+};
+
 // The fixed aspect vocabulary (structure, surface, upholstery, hardware, odour).
 export type ConditionAspect = {
   code: string;
@@ -78,6 +87,10 @@ export type Product = {
   stockQuantity: number | null;
   conditionAspects: ProductConditionAspect[];
   flaws: ProductFlaw[];
+  // Codes only — the form pairs them against the full vocabulary to render checkboxes.
+  materialCodes: string[];
+  colourCodes: string[];
+  styleCodes: string[];
   // Dimensions apply to both listing kinds — a new chair has a seat height too. Null means
   // "not measured", which is distinct from zero.
   dimensions: ProductDimensions;

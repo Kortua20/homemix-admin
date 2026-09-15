@@ -9,6 +9,7 @@ import {
   updateProduct,
   type ProductActionState,
 } from "@/app/product/actions";
+import { ProductAttributeFields } from "@/components/products/product-attribute-fields";
 import {
   ProductConditionFields,
   type AnchorablePhoto,
@@ -19,6 +20,7 @@ import type {
   ConditionGrade,
   ListingKind,
   Product,
+  ProductAttribute,
   ProductCategory,
   ProductStatus,
 } from "@/components/products/types";
@@ -50,6 +52,9 @@ type ProductFormProps = {
   categories: ProductCategory[];
   conditionGrades: ConditionGrade[];
   conditionAspects: ConditionAspect[];
+  materials: ProductAttribute[];
+  colours: ProductAttribute[];
+  styles: ProductAttribute[];
   product?: Product;
 };
 
@@ -58,6 +63,9 @@ export function ProductForm({
   categories,
   conditionGrades,
   conditionAspects,
+  materials,
+  colours,
+  styles,
   product,
 }: ProductFormProps) {
   const action = mode === "create" ? createProduct : updateProduct;
@@ -547,6 +555,17 @@ export function ProductForm({
           onProcessingChange={setImagesProcessing}
           onPhotosChange={setPhotos}
           serverError={state.fieldErrors?.images}
+        />
+
+        {/* Applies to both listing kinds — a new sofa has a material and a colour too. */}
+        <ProductAttributeFields
+          materials={materials}
+          colours={colours}
+          styles={styles}
+          selectedMaterials={product?.materialCodes}
+          selectedColours={product?.colourCodes}
+          selectedStyles={product?.styleCodes}
+          serverError={state.fieldErrors?.attributes}
         />
 
         {/* Condition detail applies only to second-hand items; a new stocked product has

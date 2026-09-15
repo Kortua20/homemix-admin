@@ -2,6 +2,7 @@ import { Package } from "lucide-react";
 import Link from "next/link";
 
 import { ProductActions } from "@/components/dashboard/products/product-actions";
+import { ProductStatusBadge } from "@/components/products/product-status-badge";
 import type { Product } from "@/components/products/types";
 import {
   formatPrice,
@@ -40,9 +41,12 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
           <p className="mt-0.5 truncate text-[13px] leading-4 text-[#605e5b]">
             {product.category.name}
           </p>
-          <span className="mt-1.5 text-sm font-semibold text-[#7f512f]">
-            {formatPrice(product.price)} ₾
-          </span>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-[#7f512f]">
+              {formatPrice(product.price)} ₾
+            </span>
+            <ProductStatusBadge status={product.status} />
+          </div>
         </div>
       </Link>
 

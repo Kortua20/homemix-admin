@@ -2,6 +2,7 @@ import { Package } from "lucide-react";
 import Link from "next/link";
 
 import { ProductActions } from "@/components/dashboard/products/product-actions";
+import { ProductStatusBadge } from "@/components/products/product-status-badge";
 import type { Product } from "@/components/products/types";
 import { formatPrice, getProductImageUrl } from "@/lib/product-data";
 
@@ -31,9 +32,12 @@ export function DesktopProductCard({ product }: DesktopProductCardProps) {
         </div>
 
         <div className="flex min-h-28 flex-col gap-1 py-4">
-          <h2 className="line-clamp-2 text-2xl font-semibold leading-[1.3] text-[#1b1c1c] transition-colors group-hover:text-[#7f512f]">
-            {product.name}
-          </h2>
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="line-clamp-2 text-2xl font-semibold leading-[1.3] text-[#1b1c1c] transition-colors group-hover:text-[#7f512f]">
+              {product.name}
+            </h2>
+            <ProductStatusBadge status={product.status} />
+          </div>
           <p className="text-sm font-semibold leading-5 text-[#605e5b]">
             {product.category.name}
           </p>

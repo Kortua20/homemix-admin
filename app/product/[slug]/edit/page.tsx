@@ -4,6 +4,14 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { ProductForm } from "@/components/products/product-form";
+import {
+  conditionAspectSelect,
+  normalizeConditionAspects,
+} from "@/lib/condition-aspect-data";
+import {
+  conditionGradeSelect,
+  normalizeConditionGrades,
+} from "@/lib/condition-grade-data";
 import { normalizeProduct, productSelect } from "@/lib/product-data";
 import { createClient } from "@/lib/server";
 import { decodeSlugParam } from "@/lib/slug";
@@ -22,17 +30,27 @@ export default async function EditProductPage({
   const { slug: rawSlug } = await params;
   const slug = decodeSlugParam(rawSlug);
   const supabase = await createClient();
-  const [productResult, categoriesResult] = await Promise.all([
-    supabase
-      .from("products")
-      .select(productSelect)
-      .eq("slug", slug)
-      .maybeSingle(),
-    supabase.from("categories").select("id, name, slug").order("name"),
-  ]);
+  const [productResult, categoriesResult, gradesResult, aspectsResult] =
+    await Promise.all([
+      supabase
+        .from("products")
+        .select(productSelect)
+        .eq("slug", slug)
+        .maybeSingle(),
+      supabase.from("categories").select("id, name, slug").order("name"),
+      supabase
+        .from("condition_grades")
+        .select(conditionGradeSelect)
+        .order("sort_order"),
+      supabase
+        .from("condition_aspects")
+        .select(conditionAspectSelect)
+        .order("sort_order"),
+    ]);
   const product = productResult.data
     ? normalizeProduct(productResult.data)
     : null;
+  const gradesError = gradesResult.error || (gradesResult.data ?? []).length === 0;
 
   if (productResult.error || !product) {
     notFound();
@@ -58,13 +76,17 @@ export default async function EditProductPage({
         </p>
       </div>
 
-      {categoriesResult.error ? (
+      {categoriesResult.error || gradesError ? (
         <div className="mt-7 rounded-3xl bg-white px-6 py-14 text-center shadow-[0_16px_30px_rgba(0,0,0,0.04)]">
           <AlertCircle
             aria-hidden="true"
             className="mx-auto size-9 text-[#c62828]"
           />
-          <h2 className="mt-4 text-xl font-bold">კატალოგი ვერ ჩაიტვირთა</h2>
+          <h2 className="mt-4 text-xl font-bold">
+            {categoriesResult.error
+              ? "კატალოგი ვერ ჩაიტვირთა"
+              : "მდგომარეობის სია ვერ ჩაიტვირთა"}
+          </h2>
           <p className="mt-2 text-sm text-[#605e5b]">
             რედაქტირებისთვის განაახლეთ გვერდი და კიდევ სცადეთ.
           </p>
@@ -74,6 +96,8 @@ export default async function EditProductPage({
           mode="edit"
           product={product}
           categories={categoriesResult.data ?? []}
+          conditionGrades={normalizeConditionGrades(gradesResult.data ?? [])}
+          conditionAspects={normalizeConditionAspects(aspectsResult.data ?? [])}
         />
       )}
     </section>

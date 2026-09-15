@@ -5,6 +5,14 @@ import { notFound } from "next/navigation";
 
 import { ProductForm } from "@/components/products/product-form";
 import {
+  colourSelect,
+  materialSelect,
+  normalizeColours,
+  normalizeMaterials,
+  normalizeStyles,
+  styleSelect,
+} from "@/lib/attribute-data";
+import {
   conditionAspectSelect,
   normalizeConditionAspects,
 } from "@/lib/condition-aspect-data";
@@ -30,23 +38,33 @@ export default async function EditProductPage({
   const { slug: rawSlug } = await params;
   const slug = decodeSlugParam(rawSlug);
   const supabase = await createClient();
-  const [productResult, categoriesResult, gradesResult, aspectsResult] =
-    await Promise.all([
-      supabase
-        .from("products")
-        .select(productSelect)
-        .eq("slug", slug)
-        .maybeSingle(),
-      supabase.from("categories").select("id, name, slug").order("name"),
-      supabase
-        .from("condition_grades")
-        .select(conditionGradeSelect)
-        .order("sort_order"),
-      supabase
-        .from("condition_aspects")
-        .select(conditionAspectSelect)
-        .order("sort_order"),
-    ]);
+  const [
+    productResult,
+    categoriesResult,
+    gradesResult,
+    aspectsResult,
+    materialsResult,
+    coloursResult,
+    stylesResult,
+  ] = await Promise.all([
+    supabase
+      .from("products")
+      .select(productSelect)
+      .eq("slug", slug)
+      .maybeSingle(),
+    supabase.from("categories").select("id, name, slug").order("name"),
+    supabase
+      .from("condition_grades")
+      .select(conditionGradeSelect)
+      .order("sort_order"),
+    supabase
+      .from("condition_aspects")
+      .select(conditionAspectSelect)
+      .order("sort_order"),
+    supabase.from("materials").select(materialSelect).order("sort_order"),
+    supabase.from("colours").select(colourSelect).order("sort_order"),
+    supabase.from("styles").select(styleSelect).order("sort_order"),
+  ]);
   const product = productResult.data
     ? normalizeProduct(productResult.data)
     : null;
@@ -98,6 +116,9 @@ export default async function EditProductPage({
           categories={categoriesResult.data ?? []}
           conditionGrades={normalizeConditionGrades(gradesResult.data ?? [])}
           conditionAspects={normalizeConditionAspects(aspectsResult.data ?? [])}
+          materials={normalizeMaterials(materialsResult.data ?? [])}
+          colours={normalizeColours(coloursResult.data ?? [])}
+          styles={normalizeStyles(stylesResult.data ?? [])}
         />
       )}
     </section>

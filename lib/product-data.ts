@@ -48,6 +48,9 @@ export const productSelect = `
     note_ka,
     sort_order
   ),
+  materials:product_materials ( material_code ),
+  colours:product_colours ( colour_code ),
+  styles:product_styles ( style_code ),
   category:categories!products_category_id_fkey (
     id,
     name,
@@ -137,6 +140,12 @@ export function normalizeProduct(row: ProductQueryRow): Product | null {
         sortOrder: flaw.sort_order,
       }))
       .sort((first, second) => first.sortOrder - second.sortOrder),
+    // Only the codes are needed here: the form renders checkboxes against the full
+    // vocabulary and marks these as selected. The labels come from the vocabulary fetch,
+    // so embedding the lookup rows too would be redundant.
+    materialCodes: (row.materials ?? []).map((m) => m.material_code),
+    colourCodes: (row.colours ?? []).map((c) => c.colour_code),
+    styleCodes: (row.styles ?? []).map((s) => s.style_code),
     // Number(null) is 0, so each field is guarded: a missing measurement must stay null.
     dimensions: {
       widthCm: row.width_cm === null ? null : Number(row.width_cm),

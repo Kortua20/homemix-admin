@@ -4,6 +4,14 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 
 import { ProductForm } from "@/components/products/product-form";
 import {
+  colourSelect,
+  materialSelect,
+  normalizeColours,
+  normalizeMaterials,
+  normalizeStyles,
+  styleSelect,
+} from "@/lib/attribute-data";
+import {
   conditionAspectSelect,
   normalizeConditionAspects,
 } from "@/lib/condition-aspect-data";
@@ -19,7 +27,14 @@ export const metadata: Metadata = {
 
 export default async function NewProductPage() {
   const supabase = await createClient();
-  const [categoriesResult, gradesResult, aspectsResult] = await Promise.all([
+  const [
+    categoriesResult,
+    gradesResult,
+    aspectsResult,
+    materialsResult,
+    coloursResult,
+    stylesResult,
+  ] = await Promise.all([
     supabase.from("categories").select("id, name, slug").order("name"),
     supabase
       .from("condition_grades")
@@ -29,6 +44,9 @@ export default async function NewProductPage() {
       .from("condition_aspects")
       .select(conditionAspectSelect)
       .order("sort_order"),
+    supabase.from("materials").select(materialSelect).order("sort_order"),
+    supabase.from("colours").select(colourSelect).order("sort_order"),
+    supabase.from("styles").select(styleSelect).order("sort_order"),
   ]);
   const { data, error } = categoriesResult;
   // A used product cannot be created without a grade, so an empty grade list is a load
@@ -74,6 +92,9 @@ export default async function NewProductPage() {
           categories={data ?? []}
           conditionGrades={normalizeConditionGrades(gradesResult.data ?? [])}
           conditionAspects={normalizeConditionAspects(aspectsResult.data ?? [])}
+          materials={normalizeMaterials(materialsResult.data ?? [])}
+          colours={normalizeColours(coloursResult.data ?? [])}
+          styles={normalizeStyles(stylesResult.data ?? [])}
         />
       )}
     </section>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 
+import type { AnchorablePhoto } from "@/components/products/product-condition-fields";
 import type { ProductImage } from "@/components/products/types";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,6 +20,11 @@ import { optimizeProductImage } from "@/lib/product-image-optimization";
 type ProductImagesFieldProps = {
   existingImages?: ProductImage[];
   onProcessingChange?: (processing: boolean) => void;
+  // Reports the photos a flaw can currently be anchored to: existing photos still visible
+  // plus newly selected ones, which already carry the id minted for them here. Follows the
+  // same shape as onProcessingChange rather than lifting this field's state into the form,
+  // which would mean making the upload/optimisation path controlled.
+  onPhotosChange?: (photos: AnchorablePhoto[]) => void;
   serverError?: string;
 };
 
@@ -26,6 +32,9 @@ type SelectedImage = {
   file: File;
   previewUrl: string;
   sourceKey: string;
+  // Minted here, not by the database, so a flaw captured in the same submit can reference
+  // this photo before it exists server-side. See SCHEMA_ROADMAP.md step 2.
+  id: string;
 };
 
 function getFileKey(file: File) {
@@ -71,6 +80,7 @@ function formatFileSize(size: number) {
 export function ProductImagesField({
   existingImages = [],
   onProcessingChange,
+  onPhotosChange,
   serverError,
 }: ProductImagesFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -190,7 +200,7 @@ export function ProductImagesField({
       const addedImages = optimizedFiles.map(({ file, sourceKey }) => {
         const previewUrl = URL.createObjectURL(file);
         previewUrlsRef.current.add(previewUrl);
-        return { file, previewUrl, sourceKey };
+        return { file, previewUrl, sourceKey, id: crypto.randomUUID() };
       });
       const mergedImages = [...newImages, ...addedImages];
 
@@ -235,6 +245,32 @@ export function ProductImagesField({
     visibleExistingImages.length + newImages.length;
   const error = localError || serverError;
 
+  // Derived, not stored: the anchorable list is a pure function of the two pieces of state
+  // above, so recomputing it avoids a second source of truth that could drift.
+  const anchorablePhotos: AnchorablePhoto[] = [
+    ...visibleExistingImages.map((image, index) => ({
+      id: image.id,
+      label: `ფოტო ${index + 1} — ${image.originalName}`,
+    })),
+    ...newImages.map((image, index) => ({
+      id: image.id,
+      label: `ახალი ფოტო ${index + 1} — ${image.file.name}`,
+      previewUrl: image.previewUrl,
+    })),
+  ];
+  // Serialised so the effect compares by value; the array identity changes every render.
+  const anchorableKey = anchorablePhotos
+    .map((photo) => `${photo.id}:${photo.label}`)
+    .join("|");
+
+  useEffect(() => {
+    onPhotosChange?.(anchorablePhotos);
+    // anchorableKey stands in for anchorablePhotos by value. Including the array itself
+    // would re-fire on every render; including onPhotosChange would require every caller
+    // to memoise it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchorableKey]);
+
   return (
     <div className="grid gap-3 lg:col-span-2">
       <div className="flex items-center justify-between gap-4">
@@ -250,6 +286,18 @@ export function ProductImagesField({
           type="hidden"
           name="deleteImageIds"
           value={imageId}
+        />
+      ))}
+
+      {/* One id per selected file, in the same order. The server pairs them by index
+          before filtering empties, so this order is load-bearing: it is what makes a
+          flaw point at the right photo. */}
+      {newImages.map((image) => (
+        <input
+          key={image.id}
+          type="hidden"
+          name="imageIds"
+          value={image.id}
         />
       ))}
 

@@ -251,6 +251,10 @@ export function ProductImagesField({
     ...visibleExistingImages.map((image, index) => ({
       id: image.id,
       label: `ფოტო ${index + 1} — ${image.originalName}`,
+      // Saved photos stream from the API route; new ones below use their object URL. Both
+      // carry a previewUrl so the flaw picker shows a thumbnail either way — on an edit the
+      // existing photos are usually the ones a flaw needs to point at.
+      previewUrl: getProductImageUrl(image.id),
     })),
     ...newImages.map((image, index) => ({
       id: image.id,

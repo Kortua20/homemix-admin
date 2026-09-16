@@ -14,6 +14,14 @@ import {
   ProductConditionFields,
   type AnchorablePhoto,
 } from "@/components/products/product-condition-fields";
+import {
+  FieldError,
+  RequiredMark,
+} from "@/components/products/field-error";
+import {
+  FormErrorSummary,
+  type FieldDescriptor,
+} from "@/components/products/form-error-summary";
 import { ProductImagesField } from "@/components/products/product-images-field";
 import type {
   ConditionAspect,
@@ -28,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  getProductImageUrl,
   LISTING_KIND_LABELS,
   PRODUCT_STATUS_LABELS,
 } from "@/lib/product-data";
@@ -83,6 +92,9 @@ export function ProductForm({
     (product?.images ?? []).map((image, index) => ({
       id: image.id,
       label: `ფოტო ${index + 1} — ${image.originalName}`,
+      // Already-saved photos stream through the same route the images field uses to render
+      // them, so the flaw picker shows thumbnails on an edit, not just on a fresh create.
+      previewUrl: getProductImageUrl(image.id),
     })),
   );
   // Drives which half of the condition/stock pair is shown. The server rebuilds the
@@ -93,6 +105,33 @@ export function ProductForm({
   const isUsed = listingKind === "used_unique";
   const cancelHref =
     mode === "edit" && product ? `/product/${product.slug}` : "/dashboard";
+
+  // Increments on every submit so the summary re-announces and re-scrolls even when the
+  // second attempt fails on the same fields. Without it, fixing one of three errors and
+  // resubmitting would leave the summary silently unchanged.
+  const [submitToken, setSubmitToken] = useState(0);
+
+  // Visual order, which is not the order the server validates in. The summary walks this
+  // list so its links read top-to-bottom the way the form does, and each `id` is the real
+  // input id so the anchor can focus it.
+  const errorFields: FieldDescriptor[] = [
+    { key: "name", id: "product-name", label: "პროდუქტის დასახელება" },
+    { key: "slug", id: "product-slug", label: "სლაგი" },
+    { key: "categoryId", id: "product-category", label: "კატალოგი" },
+    { key: "price", id: "product-price", label: "ფასი" },
+    { key: "listingKind", id: "product-listing-kind", label: "პროდუქტის ტიპი" },
+    { key: "productStatus", id: "product-status", label: "სტატუსი" },
+    { key: "conditionGrade", id: "product-condition-grade", label: "მდგომარეობა" },
+    {
+      key: "conditionSummary",
+      id: "product-condition-summary",
+      label: "მდგომარეობის აღწერა",
+    },
+    { key: "stockQuantity", id: "product-stock", label: "მარაგი" },
+    { key: "description", id: "product-description", label: "აღწერა" },
+    { key: "dimensions", id: "product-width", label: "ზომები" },
+    { key: "images", id: "product-images", label: "ფოტოები" },
+  ];
 
   function handleNameChange(event: React.ChangeEvent<HTMLInputElement>) {
     const nextName = event.target.value;
@@ -111,8 +150,14 @@ export function ProductForm({
   return (
     <form
       action={formAction}
+      onSubmit={() => setSubmitToken((token) => token + 1)}
       className="mt-7 rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-8"
     >
+      <FormErrorSummary
+        fieldErrors={state.fieldErrors}
+        fields={errorFields}
+        submitToken={submitToken}
+      />
       {product && (
         <>
           <input type="hidden" name="id" value={product.id} />
@@ -122,7 +167,10 @@ export function ProductForm({
 
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="grid gap-2 lg:col-span-2">
-          <Label htmlFor="product-name">პროდუქტის დასახელება</Label>
+          <Label htmlFor="product-name">
+            პროდუქტის დასახელება
+            <RequiredMark />
+          </Label>
           <Input
             id="product-name"
             name="name"
@@ -140,17 +188,15 @@ export function ProductForm({
             className="h-12 border-[#d6c3b8] bg-white"
           />
           {state.fieldErrors?.name && (
-            <p
-              id="product-name-error"
-              className="text-xs font-medium text-[#c62828]"
-            >
-              {state.fieldErrors.name}
-            </p>
+            <FieldError id="product-name-error">{state.fieldErrors.name}</FieldError>
           )}
         </div>
 
         <div className="grid gap-2 lg:col-span-2">
-          <Label htmlFor="product-slug">სლაგი</Label>
+          <Label htmlFor="product-slug">
+            სლაგი
+            <RequiredMark />
+          </Label>
           <Input
             id="product-slug"
             name="slug"
@@ -170,12 +216,7 @@ export function ProductForm({
             className="h-12 border-[#d6c3b8] bg-white"
           />
           {state.fieldErrors?.slug ? (
-            <p
-              id="product-slug-error"
-              className="text-xs font-medium text-[#c62828]"
-            >
-              {state.fieldErrors.slug}
-            </p>
+            <FieldError id="product-slug-error">{state.fieldErrors.slug}</FieldError>
           ) : (
             <p
               id="product-slug-help"
@@ -187,7 +228,10 @@ export function ProductForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="product-category">კატალოგი</Label>
+          <Label htmlFor="product-category">
+            კატალოგი
+            <RequiredMark />
+          </Label>
           <select
             id="product-category"
             name="categoryId"
@@ -199,7 +243,7 @@ export function ProductForm({
                 ? "product-category-error"
                 : undefined
             }
-            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
           >
             <option value="" disabled>
               აირჩიეთ კატალოგი
@@ -211,17 +255,15 @@ export function ProductForm({
             ))}
           </select>
           {state.fieldErrors?.categoryId && (
-            <p
-              id="product-category-error"
-              className="text-xs font-medium text-[#c62828]"
-            >
-              {state.fieldErrors.categoryId}
-            </p>
+            <FieldError id="product-category-error">{state.fieldErrors.categoryId}</FieldError>
           )}
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="product-price">ფასი</Label>
+          <Label htmlFor="product-price">
+            ფასი
+            <RequiredMark />
+          </Label>
           <div className="relative">
             <Input
               id="product-price"
@@ -244,17 +286,15 @@ export function ProductForm({
             </span>
           </div>
           {state.fieldErrors?.price && (
-            <p
-              id="product-price-error"
-              className="text-xs font-medium text-[#c62828]"
-            >
-              {state.fieldErrors.price}
-            </p>
+            <FieldError id="product-price-error">{state.fieldErrors.price}</FieldError>
           )}
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="product-listing-kind">პროდუქტის ტიპი</Label>
+          <Label htmlFor="product-listing-kind">
+            პროდუქტის ტიპი
+            <RequiredMark />
+          </Label>
           <select
             id="product-listing-kind"
             name="listingKind"
@@ -264,8 +304,12 @@ export function ProductForm({
             }
             required
             aria-invalid={Boolean(state.fieldErrors?.listingKind)}
-            aria-describedby="product-listing-kind-help"
-            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+            aria-describedby={
+              state.fieldErrors?.listingKind
+                ? "product-listing-kind-error"
+                : "product-listing-kind-help"
+            }
+            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
           >
             {LISTING_KIND_OPTIONS.map((kind) => (
               <option key={kind} value={kind}>
@@ -274,9 +318,7 @@ export function ProductForm({
             ))}
           </select>
           {state.fieldErrors?.listingKind ? (
-            <p className="text-xs font-medium text-[#c62828]">
-              {state.fieldErrors.listingKind}
-            </p>
+            <FieldError id="product-listing-kind-error">{state.fieldErrors.listingKind}</FieldError>
           ) : (
             <p
               id="product-listing-kind-help"
@@ -289,15 +331,22 @@ export function ProductForm({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="product-status">სტატუსი</Label>
+          <Label htmlFor="product-status">
+            სტატუსი
+            <RequiredMark />
+          </Label>
           <select
             id="product-status"
             name="productStatus"
             defaultValue={product?.status ?? "draft"}
             required
             aria-invalid={Boolean(state.fieldErrors?.productStatus)}
-            aria-describedby="product-status-help"
-            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+            aria-describedby={
+              state.fieldErrors?.productStatus
+                ? "product-status-error"
+                : "product-status-help"
+            }
+            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
           >
             {STATUS_OPTIONS.map((value) => (
               <option key={value} value={value}>
@@ -306,9 +355,7 @@ export function ProductForm({
             ))}
           </select>
           {state.fieldErrors?.productStatus ? (
-            <p className="text-xs font-medium text-[#c62828]">
-              {state.fieldErrors.productStatus}
-            </p>
+            <FieldError id="product-status-error">{state.fieldErrors.productStatus}</FieldError>
           ) : (
             <p
               id="product-status-help"
@@ -330,8 +377,12 @@ export function ProductForm({
                 defaultValue={product?.conditionGrade?.code ?? ""}
                 required
                 aria-invalid={Boolean(state.fieldErrors?.conditionGrade)}
-                aria-describedby="product-condition-grade-help"
-                className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+                aria-describedby={
+                  state.fieldErrors?.conditionGrade
+                    ? "product-condition-grade-error"
+                    : "product-condition-grade-help"
+                }
+                className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
               >
                 <option value="" disabled>
                   აირჩიეთ მდგომარეობა
@@ -343,9 +394,7 @@ export function ProductForm({
                 ))}
               </select>
               {state.fieldErrors?.conditionGrade ? (
-                <p className="text-xs font-medium text-[#c62828]">
-                  {state.fieldErrors.conditionGrade}
-                </p>
+                <FieldError id="product-condition-grade-error">{state.fieldErrors.conditionGrade}</FieldError>
               ) : (
                 <p
                   id="product-condition-grade-help"
@@ -368,13 +417,15 @@ export function ProductForm({
                 rows={4}
                 maxLength={2000}
                 aria-invalid={Boolean(state.fieldErrors?.conditionSummary)}
-                aria-describedby="product-condition-summary-help"
-                className="w-full resize-y rounded-lg border border-[#d6c3b8] bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-[#83746b] focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+                aria-describedby={
+                  state.fieldErrors?.conditionSummary
+                    ? "product-condition-summary-error"
+                    : "product-condition-summary-help"
+                }
+                className="w-full resize-y rounded-lg border border-[#d6c3b8] bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-[#83746b] focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
               />
               {state.fieldErrors?.conditionSummary ? (
-                <p className="text-xs font-medium text-[#c62828]">
-                  {state.fieldErrors.conditionSummary}
-                </p>
+                <FieldError id="product-condition-summary-error">{state.fieldErrors.conditionSummary}</FieldError>
               ) : (
                 <p
                   id="product-condition-summary-help"
@@ -398,13 +449,15 @@ export function ProductForm({
               defaultValue={product?.stockQuantity ?? 1}
               required
               aria-invalid={Boolean(state.fieldErrors?.stockQuantity)}
-              aria-describedby="product-stock-quantity-help"
+              aria-describedby={
+                state.fieldErrors?.stockQuantity
+                  ? "product-stock-quantity-error"
+                  : "product-stock-quantity-help"
+              }
               className="h-12 border-[#d6c3b8] bg-white"
             />
             {state.fieldErrors?.stockQuantity ? (
-              <p className="text-xs font-medium text-[#c62828]">
-                {state.fieldErrors.stockQuantity}
-              </p>
+              <FieldError id="product-stock-quantity-error">{state.fieldErrors.stockQuantity}</FieldError>
             ) : (
               <p
                 id="product-stock-quantity-help"
@@ -439,6 +492,15 @@ export function ProductForm({
                 max="2000"
                 step="0.1"
                 defaultValue={product?.dimensions.widthCm ?? ""}
+                // `dimensions` is one error covering five inputs, and the server does not
+                // say which one is bad. Marking the first is what the summary links to, so
+                // the person lands inside the group rather than nowhere.
+                aria-invalid={Boolean(state.fieldErrors?.dimensions)}
+                aria-describedby={
+                  state.fieldErrors?.dimensions
+                    ? "product-dimensions-error"
+                    : undefined
+                }
                 className="h-12 border-[#d6c3b8] bg-white"
               />
             </div>
@@ -510,9 +572,7 @@ export function ProductForm({
           </div>
 
           {state.fieldErrors?.dimensions ? (
-            <p className="text-xs font-medium text-[#c62828]">
-              {state.fieldErrors.dimensions}
-            </p>
+            <FieldError id="product-dimensions-error">{state.fieldErrors.dimensions}</FieldError>
           ) : null}
         </fieldset>
 
@@ -531,15 +591,10 @@ export function ProductForm({
                 ? "product-description-error"
                 : "product-description-help"
             }
-            className="w-full resize-y rounded-lg border border-[#d6c3b8] bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-[#83746b] focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+            className="w-full resize-y rounded-lg border border-[#d6c3b8] bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-[#83746b] focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
           />
           {state.fieldErrors?.description ? (
-            <p
-              id="product-description-error"
-              className="text-xs font-medium text-[#c62828]"
-            >
-              {state.fieldErrors.description}
-            </p>
+            <FieldError id="product-description-error">{state.fieldErrors.description}</FieldError>
           ) : (
             <p
               id="product-description-help"

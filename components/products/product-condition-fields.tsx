@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, Plus, Trash2 } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 import type {
   ConditionAspect,
@@ -282,30 +284,112 @@ export function ProductConditionFields({
                   />
                 </div>
 
-                <div className="grid gap-1.5">
-                  <Label htmlFor={`flaw-image-${flaw.key}`}>ფოტო</Label>
-                  <select
-                    id={`flaw-image-${flaw.key}`}
-                    name={`flawImage_${flaw.key}`}
-                    value={flaw.imageId}
-                    onChange={(event) =>
-                      updateFlaw(flaw.key, { imageId: event.target.value })
-                    }
-                    className="h-11 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
-                  >
-                    <option value="">— ფოტოს გარეშე —</option>
-                    {photos.map((photo) => (
-                      <option key={photo.id} value={photo.id}>
-                        {photo.label}
-                      </option>
-                    ))}
-                  </select>
+                {/* Anchoring a flaw to its photo is the whole point of this section, and a
+                    <select> of file names made it guesswork: nobody knows which of
+                    IMG_4821 and IMG_4822 shows the scratch. The thumbnails are the same
+                    images the upload field already renders, so this adds no new data path
+                    — only the ability to see what you are choosing.
+
+                    A radio group, not buttons: one photo per flaw is exactly radio
+                    semantics, it gives keyboard users arrow-key navigation for free, and
+                    the value still submits under the same field name the server reads. */}
+                <fieldset className="grid gap-1.5">
+                  <legend className="mb-1.5 text-sm font-semibold leading-[1.4] tracking-wider text-[#51443c]">
+                    ფოტო
+                  </legend>
+
                   {photos.length === 0 ? (
                     <p className="text-xs leading-5 text-[#83746b]">
                       ჯერ დაამატეთ ფოტოები, რომ ნაკლს ფოტო მიაბათ.
                     </p>
-                  ) : null}
-                </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {photos.map((photo, index) => {
+                        const selected = flaw.imageId === photo.id;
+                        const inputId = `flaw-${flaw.key}-photo-${photo.id}`;
+
+                        return (
+                          <div key={photo.id} className="relative">
+                            {/* Visually hidden rather than `hidden`: a hidden input is
+                                removed from the tab order and unreachable by keyboard. */}
+                            <input
+                              type="radio"
+                              id={inputId}
+                              name={`flawImage_${flaw.key}`}
+                              value={photo.id}
+                              checked={selected}
+                              onChange={() =>
+                                updateFlaw(flaw.key, { imageId: photo.id })
+                              }
+                              className="peer sr-only"
+                            />
+                            <label
+                              htmlFor={inputId}
+                              title={photo.label}
+                              className={cn(
+                                "block cursor-pointer overflow-hidden rounded-lg border-2 transition-colors",
+                                "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#7f512f]",
+                                selected
+                                  ? "border-[#7f512f]"
+                                  : "border-transparent hover:border-[#d6c3b8]",
+                              )}
+                            >
+                              {photo.previewUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={photo.previewUrl}
+                                  alt={photo.label}
+                                  className="size-16 object-cover"
+                                />
+                              ) : (
+                                <span className="grid size-16 place-items-center bg-[#f3ede9] text-xs text-[#83746b]">
+                                  {index + 1}
+                                </span>
+                              )}
+                            </label>
+
+                            {selected ? (
+                              <span
+                                aria-hidden="true"
+                                className="pointer-events-none absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-[#7f512f] text-white"
+                              >
+                                <Check className="size-3" />
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+
+                      {/* The escape hatch. Some real flaws — an odour, a wobble — have no
+                          meaningful photo, and product_flaws.image_id is nullable for
+                          exactly that reason. Without this the radio group would be a trap:
+                          once a photo is picked there is no way back to none. */}
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          id={`flaw-${flaw.key}-photo-none`}
+                          name={`flawImage_${flaw.key}`}
+                          value=""
+                          checked={flaw.imageId === ""}
+                          onChange={() => updateFlaw(flaw.key, { imageId: "" })}
+                          className="peer sr-only"
+                        />
+                        <label
+                          htmlFor={`flaw-${flaw.key}-photo-none`}
+                          className={cn(
+                            "grid size-16 cursor-pointer place-items-center rounded-lg border-2 border-dashed px-1 text-center text-[11px] leading-tight transition-colors",
+                            "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#7f512f]",
+                            flaw.imageId === ""
+                              ? "border-[#7f512f] bg-[#f7f1ec] text-[#7f512f]"
+                              : "border-[#d6c3b8] text-[#83746b] hover:border-[#7f512f]",
+                          )}
+                        >
+                          ფოტოს გარეშე
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </fieldset>
               </li>
             ))}
           </ul>

@@ -167,8 +167,12 @@ export function normalizeProducts(rows: ProductQueryRow[]): Product[] {
     .filter((product): product is Product => product !== null);
 }
 
+// "en-US" rather than "ka-GE" on purpose: ICU versions disagree on whether
+// Georgian groups thousands, so "ka-GE" renders 2450 on the server and 2,450 in
+// the browser and breaks hydration. en-US groups identically to what we want
+// here (comma thousands, dot decimals) and is stable across ICU versions.
 export function formatPrice(price: number) {
-  return new Intl.NumberFormat("ka-GE", {
+  return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
     maximumFractionDigits: 2,
   }).format(price);

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       categories: {
@@ -406,6 +431,7 @@ export type Database = {
       products: {
         Row: {
           category_id: string
+          compare_at_price: number | null
           condition_grade: string | null
           condition_summary: string | null
           created_at: string
@@ -417,6 +443,7 @@ export type Database = {
           listing_kind: string
           name: string
           price: number
+          published_at: string | null
           seat_height_cm: number | null
           slug: string
           status: string
@@ -427,6 +454,7 @@ export type Database = {
         }
         Insert: {
           category_id: string
+          compare_at_price?: number | null
           condition_grade?: string | null
           condition_summary?: string | null
           created_at?: string
@@ -438,6 +466,7 @@ export type Database = {
           listing_kind?: string
           name: string
           price: number
+          published_at?: string | null
           seat_height_cm?: number | null
           slug: string
           status?: string
@@ -448,6 +477,7 @@ export type Database = {
         }
         Update: {
           category_id?: string
+          compare_at_price?: number | null
           condition_grade?: string | null
           condition_summary?: string | null
           created_at?: string
@@ -459,6 +489,7 @@ export type Database = {
           listing_kind?: string
           name?: string
           price?: number
+          published_at?: string | null
           seat_height_cm?: number | null
           slug?: string
           status?: string
@@ -650,6 +681,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

@@ -119,6 +119,11 @@ export function ProductForm({
     { key: "slug", id: "product-slug", label: "სლაგი" },
     { key: "categoryId", id: "product-category", label: "კატალოგი" },
     { key: "price", id: "product-price", label: "ფასი" },
+    {
+      key: "compareAtPrice",
+      id: "product-compare-at-price",
+      label: "ძველი ფასი",
+    },
     { key: "listingKind", id: "product-listing-kind", label: "პროდუქტის ტიპი" },
     { key: "productStatus", id: "product-status", label: "სტატუსი" },
     { key: "conditionGrade", id: "product-condition-grade", label: "მდგომარეობა" },
@@ -287,6 +292,49 @@ export function ProductForm({
           </div>
           {state.fieldErrors?.price && (
             <FieldError id="product-price-error">{state.fieldErrors.price}</FieldError>
+          )}
+        </div>
+
+        {/* The "was" price. Optional: blank means the item is not on sale and writes NULL.
+            `ფასი` above always stays what the customer pays, so a discount never overwrites
+            the real selling price — and the percentage shown on the storefront is derived
+            from these two rather than stored, so it cannot drift out of agreement. */}
+        <div className="grid gap-2">
+          <Label htmlFor="product-compare-at-price">ძველი ფასი</Label>
+          <div className="relative">
+            <Input
+              id="product-compare-at-price"
+              name="compareAtPrice"
+              type="number"
+              min="0"
+              max="9999999999.99"
+              step="0.01"
+              defaultValue={product?.compareAtPrice ?? ""}
+              placeholder="ფასდაკლების გარეშე — ცარიელი"
+              aria-invalid={Boolean(state.fieldErrors?.compareAtPrice)}
+              aria-describedby={
+                state.fieldErrors?.compareAtPrice
+                  ? "product-compare-at-price-error"
+                  : "product-compare-at-price-help"
+              }
+              className="h-12 border-[#d6c3b8] bg-white pr-10"
+            />
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-[#605e5b]">
+              ₾
+            </span>
+          </div>
+          {state.fieldErrors?.compareAtPrice ? (
+            <FieldError id="product-compare-at-price-error">
+              {state.fieldErrors.compareAtPrice}
+            </FieldError>
+          ) : (
+            <p
+              id="product-compare-at-price-help"
+              className="text-xs leading-5 text-[#605e5b]"
+            >
+              შეავსეთ მხოლოდ ფასდაკლების დროს. უნდა იყოს მიმდინარე ფასზე მეტი —
+              ფასდაკლების პროცენტი ავტომატურად გამოითვლება.
+            </p>
           )}
         </div>
 

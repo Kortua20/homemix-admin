@@ -32,6 +32,7 @@ export type ProductActionState = {
     slug?: string;
     description?: string;
     price?: string;
+    compareAtPrice?: string;
     categoryId?: string;
     images?: string;
     listingKind?: string;
@@ -64,6 +65,7 @@ type ProductWriteValues = {
   slug: string;
   description: string;
   price: number;
+  compare_at_price: number | null;
   category_id: string;
   listing_kind: string;
   status: string;
@@ -129,6 +131,28 @@ function readProductFields(formData: FormData) {
     price > 9_999_999_999.99
   ) {
     fieldErrors.price = "შეიყვანეთ სწორი, არაუარყოფითი ფასი.";
+  }
+
+  // The "was" price. Blank means "not on sale" and writes NULL — the same blank-vs-zero
+  // distinction the measurements make, and for the same reason: a compare-at price of 0
+  // would be a claim, not an absence.
+  const compareAtValue = String(formData.get("compareAtPrice") ?? "").trim();
+  const compareAtPrice = compareAtValue === "" ? null : Number(compareAtValue);
+
+  if (compareAtPrice !== null) {
+    if (
+      !Number.isFinite(compareAtPrice) ||
+      compareAtPrice <= 0 ||
+      compareAtPrice > 9_999_999_999.99
+    ) {
+      fieldErrors.compareAtPrice = "შეიყვანეთ სწორი ძველი ფასი, ან დატოვეთ ცარიელი.";
+    } else if (Number.isFinite(price) && compareAtPrice <= price) {
+      // Mirrors products_compare_at_price_check. Checked here only to produce a message
+      // that names the problem — the database is still the authority, and an equal price is
+      // rejected rather than merely discouraged because it renders a 0% saving.
+      fieldErrors.compareAtPrice =
+        "ძველი ფასი მიმდინარე ფასზე მეტი უნდა იყოს, თორემ ფასდაკლება არ ჩანს.";
+    }
   }
 
   if (!uuidPattern.test(categoryId)) {
@@ -201,6 +225,7 @@ function readProductFields(formData: FormData) {
     slug,
     description,
     price,
+    compare_at_price: compareAtPrice,
     category_id: categoryId,
     listing_kind: listingKind,
     status: productStatus,
@@ -216,6 +241,31 @@ function readProductFields(formData: FormData) {
   };
 
   return { values, fieldErrors };
+}
+
+// published_at records when a listing FIRST became available, which is what the storefront's
+// "new arrival" badge is derived from. It is deliberately not created_at: a used item sits in
+// `draft` while it is photographed and assessed, so the row exists days before it goes on
+// sale (see the column comment in the storefront repo's schemas/03_products.sql).
+//
+// Two rules, and both matter:
+//
+//   - Stamp it only on the transition INTO `available` from a row that was never published.
+//     Setting it on every save would make any edit to a live listing re-badge it as new,
+//     which turns the badge into "recently edited" and is exactly the kind of quiet lie the
+//     rest of this schema exists to avoid.
+//   - Never clear it. A listing that sells and is later re-listed keeps its original
+//     publication date rather than presenting as a new arrival on its second outing.
+//
+// Written here in the action rather than as a database trigger on purpose: this codebase
+// keeps write rules in readProductFields and its neighbours, where they are visible to
+// whoever is reading the save path. A trigger would be the hidden half of the story.
+function getPublishedAtUpdate(
+  nextStatus: string,
+  currentPublishedAt: string | null,
+): { published_at: string } | Record<string, never> {
+  if (nextStatus !== "available" || currentPublishedAt !== null) return {};
+  return { published_at: new Date().toISOString() };
 }
 
 // Each new photo carries a client-generated id so a flaw submitted in the same request can
@@ -582,9 +632,11 @@ export async function createProduct(
     return { status: "error", message: authorization.error };
   }
 
+  // A product created directly as `available` is published now; one created as a draft is
+  // stamped later, by updateProduct, when it actually goes live.
   const { data, error } = await authorization.supabase
     .from("products")
-    .insert(values)
+    .insert({ ...values, ...getPublishedAtUpdate(values.status, null) })
     .select("id, slug")
     .single();
 
@@ -706,17 +758,44 @@ export async function updateProduct(
     return { status: "error", message: authorization.error };
   }
 
-  const { data: currentImages, error: currentImagesError } =
-    await authorization.supabase
+  // The current published_at is needed to decide whether this save is the first transition
+  // into `available`. Fetched alongside the images rather than in a separate round trip.
+  const [
+    { data: currentImages, error: currentImagesError },
+    { data: currentProduct, error: currentProductError },
+  ] = await Promise.all([
+    authorization.supabase
       .from("product_images")
       .select("id, object_key, sort_order")
       .eq("product_id", id)
-      .order("sort_order");
+      .order("sort_order"),
+    authorization.supabase
+      .from("products")
+      .select("published_at")
+      .eq("id", id)
+      .maybeSingle(),
+  ]);
 
   if (currentImagesError) {
     return {
       status: "error",
       message: "არსებული ფოტოები ვერ შემოწმდა. გთხოვთ, კიდევ სცადოთ.",
+    };
+  }
+
+  // A read failure must not be treated as "never published": that would re-stamp
+  // published_at and re-badge a long-live listing as a new arrival. Fail the save instead.
+  if (currentProductError) {
+    return {
+      status: "error",
+      message: "პროდუქტის მონაცემები ვერ შემოწმდა. გთხოვთ, კიდევ სცადოთ.",
+    };
+  }
+
+  if (!currentProduct) {
+    return {
+      status: "error",
+      message: "პროდუქტი ვერ მოიძებნა ან მისი შეცვლის უფლება არ გაქვთ.",
     };
   }
 
@@ -756,7 +835,14 @@ export async function updateProduct(
 
   const { data, error } = await authorization.supabase
     .from("products")
-    .update({ ...values, updated_at: new Date().toISOString() })
+    .update({
+      ...values,
+      // Spread last so it can add published_at, and omitted entirely when this is not the
+      // first publish — an absent key leaves the stored value alone, where an explicit
+      // undefined or null would clear it.
+      ...getPublishedAtUpdate(values.status, currentProduct.published_at),
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id)
     .select("id, slug")
     .maybeSingle();

@@ -14,9 +14,11 @@ export const productSelect = `
   name,
   description,
   price,
+  compare_at_price,
   category_id,
   created_at,
   updated_at,
+  published_at,
   status,
   listing_kind,
   condition_summary,
@@ -102,6 +104,11 @@ export function normalizeProduct(row: ProductQueryRow): Product | null {
     name: row.name,
     description: row.description,
     price: Number(row.price),
+    // Number(null) is 0, which would turn "not discounted" into a compare-at price of zero
+    // — the same guard the dimensions below need, for the same reason.
+    compareAtPrice:
+      row.compare_at_price === null ? null : Number(row.compare_at_price),
+    publishedAt: row.published_at,
     categoryId: row.category_id,
     category,
     images: (row.images ?? [])

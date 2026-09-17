@@ -75,6 +75,13 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  // The "was" price, or null when not discounted. The database enforces
+  // compare_at_price > price, so this is never equal to or below `price`.
+  compareAtPrice: number | null;
+  // When the listing first became `available`. Null means never published — or published
+  // before the column existed, which is every row that predates roadmap step 4. Set by the
+  // server action on the draft→available transition, not by a trigger.
+  publishedAt: string | null;
   categoryId: string;
   category: ProductCategory;
   images: ProductImage[];

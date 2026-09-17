@@ -156,10 +156,40 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   </dd>
                 </div>
               ) : null}
+              {/* published_at is staff-facing information: it is what the storefront's
+                  "new arrival" badge is derived from, so whoever is editing a listing needs
+                  to see whether it has ever been published. Null on every row created
+                  before roadmap step 4, which is why it is shown as an absence rather than
+                  a date. */}
+              <div className="flex items-center justify-between gap-4 py-4">
+                <dt className="text-sm text-[#605e5b]">გამოქვეყნდა</dt>
+                <dd className="text-right text-sm font-semibold">
+                  {product.publishedAt
+                    ? new Date(product.publishedAt).toLocaleDateString("ka-GE")
+                    : "—"}
+                </dd>
+              </div>
               <div className="flex items-center justify-between gap-4 pb-0 pt-4">
                 <dt className="text-sm text-[#605e5b]">ფასი</dt>
-                <dd className="text-xl font-bold text-[#7f512f]">
-                  {formatPrice(product.price)} ₾
+                <dd className="flex flex-col items-end gap-0.5">
+                  <span className="text-xl font-bold text-[#7f512f]">
+                    {formatPrice(product.price)} ₾
+                  </span>
+                  {product.compareAtPrice !== null ? (
+                    <span className="text-xs text-[#605e5b]">
+                      <span className="sr-only">ძველი ფასი: </span>
+                      <s>{formatPrice(product.compareAtPrice)} ₾</s>
+                      {" · "}
+                      {/* Derived here too, from the same two numbers the storefront uses.
+                          Kept inline rather than shared: the two repos share a database,
+                          not code. */}
+                      -
+                      {Math.round(
+                        (1 - product.price / product.compareAtPrice) * 100,
+                      )}
+                      %
+                    </span>
+                  ) : null}
                 </dd>
               </div>
             </dl>

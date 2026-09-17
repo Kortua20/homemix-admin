@@ -9,12 +9,20 @@ export const metadata: Metadata = {
   title: "კატალოგი | Home Mix ადმინისტრაცია",
 };
 
+// Categories are a small closed set — a furniture shop has tens, not thousands — and the
+// product form needs every one of them in a single select, so this list is deliberately not
+// paginated. It is bounded anyway: an unbounded PostgREST request is silently truncated at
+// db-max-rows, which would drop categories with no error at all. Past this many, the answer
+// is pagination here and a searchable picker in the form, not a larger number.
+const MAX_CATEGORIES = 200;
+
 export default async function CategoriesPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("categories")
     .select(categorySelect)
-    .order("name", { ascending: true });
+    .order("name", { ascending: true })
+    .range(0, MAX_CATEGORIES - 1);
 
   return (
     <section className="px-5 pb-28 pt-5 lg:px-8 lg:pb-16 lg:pt-16 xl:px-16">

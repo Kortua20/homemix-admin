@@ -895,6 +895,52 @@ export async function updateProduct(
     }
   }
 
+  // Promote the chosen photo to sort_order 0.
+  //
+  // The storefront's card and the gallery both lead with the lowest sort_order, so this is
+  // what decides the shop-window image. Until now that was whichever photo happened to be
+  // uploaded first, changeable only by deleting everything and re-uploading in order.
+  //
+  // Every surviving row is renumbered 0..n-1 with the chosen one first, rather than swapping
+  // two rows. Checked against the schema: product_images has no unique constraint on
+  // (product_id, sort_order), so a plain rewrite cannot collide — and renumbering the whole
+  // list is also self-healing for gaps left by earlier deletions.
+  //
+  // A failed renumber does not fail the save. The product and its photos are already stored
+  // correctly and only their order is stale; rolling back a successful update over an
+  // ordering detail would be the worse trade.
+  const requestedLeadId = String(formData.get("leadImageId") ?? "").trim();
+  if (requestedLeadId) {
+    const surviving = [
+      ...(currentImages ?? [])
+        .filter((image) => !deletedImageIdSet.has(image.id))
+        .map((image) => ({ id: image.id, sort_order: image.sort_order })),
+      ...newImageRows.map((row) => ({
+        id: row.id,
+        sort_order: row.sort_order,
+      })),
+    ].sort((a, b) => a.sort_order - b.sort_order);
+
+    const lead = surviving.find((image) => image.id === requestedLeadId);
+    // Silently ignored when the id is unknown or already leading: a stale form referring to
+    // a photo that was deleted in the same submit is a no-op, not an error.
+    if (lead && surviving[0]?.id !== requestedLeadId) {
+      const reordered = [
+        lead,
+        ...surviving.filter((image) => image.id !== requestedLeadId),
+      ];
+
+      await Promise.all(
+        reordered.map((image, index) =>
+          authorization.supabase
+            .from("product_images")
+            .update({ sort_order: index })
+            .eq("id", image.id),
+        ),
+      );
+    }
+  }
+
   // Condition detail is replaced wholesale rather than diffed: the form always submits the
   // complete set, so delete-then-insert is both simpler and cannot leave a flaw the user
   // removed in the browser still sitting in the database.

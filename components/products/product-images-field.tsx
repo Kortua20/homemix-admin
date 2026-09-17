@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus, Star, Trash2 } from "lucide-react";
 
 import type { AnchorablePhoto } from "@/components/products/product-condition-fields";
 import type { ProductImage } from "@/components/products/types";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/product-image-constraints";
 import { getProductImageUrl } from "@/lib/product-data";
 import { optimizeProductImage } from "@/lib/product-image-optimization";
+import { cn } from "@/lib/utils";
 
 type ProductImagesFieldProps = {
   existingImages?: ProductImage[];
@@ -41,29 +42,74 @@ function getFileKey(file: File) {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
-function NewImagePreview({
-  image,
+// One thumbnail, used for both saved and newly-selected photos. They differ only by the
+// "ახალი" marker, and keeping two near-identical components was how the lead control would
+// have ended up on one of them and not the other.
+function ImageThumb({
+  previewUrl,
+  alt,
+  label,
+  isNew = false,
+  isLead,
+  onMakeLead,
   onRemove,
 }: {
-  image: SelectedImage;
+  previewUrl: string;
+  alt: string;
+  label: string;
+  isNew?: boolean;
+  isLead: boolean;
+  onMakeLead: () => void;
   onRemove: () => void;
 }) {
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-2xl bg-image-placeholder">
+    <div
+      className={cn(
+        "group relative aspect-square overflow-hidden rounded-2xl bg-image-placeholder",
+        // A ring rather than a border: a border would resize the thumbnail and make the
+        // grid shift every time the lead changes.
+        isLead && "ring-2 ring-walnut ring-offset-2",
+      )}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={image.previewUrl}
-        alt={image.file.name}
+        src={previewUrl}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
         className="size-full object-cover"
       />
-      <span className="absolute bottom-2 left-2 rounded-full bg-ink/75 px-2 py-1 text-[10px] font-semibold text-white">
-        ახალი
-      </span>
+
+      {isNew ? (
+        <span className="absolute left-2 top-2 rounded-full bg-ink/75 px-2 py-1 text-[10px] font-semibold text-white">
+          ახალი
+        </span>
+      ) : null}
+
+      {isLead ? (
+        <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-walnut px-2 py-1 text-[10px] font-semibold text-white">
+          <Star aria-hidden="true" className="size-3 fill-current" />
+          მთავარი
+        </span>
+      ) : (
+        // Only offered on photos that are not already leading, so the control always does
+        // something when it is visible.
+        <button
+          type="button"
+          onClick={onMakeLead}
+          className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[10px] font-semibold text-quiet-ink shadow-md transition-colors hover:bg-white hover:text-walnut focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-walnut"
+        >
+          <Star aria-hidden="true" className="size-3" />
+          მთავარად
+          <span className="sr-only"> — {label}</span>
+        </button>
+      )}
+
       <button
         type="button"
         onClick={onRemove}
-        aria-label={`${image.file.name} — ამოღება`}
-        className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-white/95 text-destructive shadow-md"
+        aria-label={`${label} — ${isNew ? "ამოღება" : "წაშლა"}`}
+        className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-white/95 text-destructive shadow-md transition-colors hover:bg-destructive-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive"
       >
         <Trash2 aria-hidden="true" className="size-4" />
       </button>
@@ -89,6 +135,9 @@ export function ProductImagesField({
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
   const [localError, setLocalError] = useState("");
   const [processing, setProcessing] = useState(false);
+  // Which photo leads. Empty means "whatever is already first", so an untouched form submits
+  // no leadImageId and the server leaves the existing order alone.
+  const [leadImageId, setLeadImageId] = useState("");
 
   useEffect(() => {
     const previewUrls = previewUrlsRef.current;
@@ -245,6 +294,20 @@ export function ProductImagesField({
     visibleExistingImages.length + newImages.length;
   const error = localError || serverError;
 
+  // What the badge marks. Falls back to the first surviving photo, because that is what the
+  // storefront actually shows when no explicit choice has been made — leaving the badge off
+  // until someone clicks would hide which photo is currently the shop window.
+  //
+  // Also recovers when the chosen photo is removed in the same session: the id no longer
+  // matches anything, so the marker returns to whatever is now first.
+  const orderedIds = [
+    ...visibleExistingImages.map((image) => image.id),
+    ...newImages.map((image) => image.id),
+  ];
+  const effectiveLeadId = orderedIds.includes(leadImageId)
+    ? leadImageId
+    : (orderedIds[0] ?? "");
+
   // Derived, not stored: the anchorable list is a pure function of the two pieces of state
   // above, so recomputing it avoids a second source of truth that could drift.
   const anchorablePhotos: AnchorablePhoto[] = [
@@ -305,38 +368,44 @@ export function ProductImagesField({
         />
       ))}
 
-      {(visibleExistingImages.length > 0 || newImages.length > 0) && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {visibleExistingImages.map((image) => (
-            <div
-              key={image.id}
-              className="group relative aspect-square overflow-hidden rounded-2xl bg-image-placeholder"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={getProductImageUrl(image.id)}
-                alt={image.originalName}
-                className="size-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => removeExistingImage(image.id)}
-                aria-label={`${image.originalName} — წაშლა`}
-                className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-white/95 text-destructive shadow-md"
-              >
-                <Trash2 aria-hidden="true" className="size-4" />
-              </button>
-            </div>
-          ))}
+      {/* The lead choice reaches the server as one field. Absent when untouched, so an edit
+          that does not change the lead leaves the stored order alone. */}
+      {leadImageId ? (
+        <input type="hidden" name="leadImageId" value={leadImageId} />
+      ) : null}
 
-          {newImages.map((image, index) => (
-            <NewImagePreview
-              key={`${image.file.name}-${image.file.size}-${image.file.lastModified}`}
-              image={image}
-              onRemove={() => removeNewFile(index)}
-            />
-          ))}
-        </div>
+      {(visibleExistingImages.length > 0 || newImages.length > 0) && (
+        <>
+          <p className="text-xs text-soft-brown">
+            პირველი ფოტო ჩანს კატალოგში. აირჩიეთ სხვა „მთავარად“ ღილაკით.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {visibleExistingImages.map((image) => (
+              <ImageThumb
+                key={image.id}
+                previewUrl={getProductImageUrl(image.id)}
+                alt={image.originalName}
+                label={image.originalName}
+                isLead={effectiveLeadId === image.id}
+                onMakeLead={() => setLeadImageId(image.id)}
+                onRemove={() => removeExistingImage(image.id)}
+              />
+            ))}
+
+            {newImages.map((image, index) => (
+              <ImageThumb
+                key={`${image.file.name}-${image.file.size}-${image.file.lastModified}`}
+                previewUrl={image.previewUrl}
+                alt={image.file.name}
+                label={image.file.name}
+                isNew
+                isLead={effectiveLeadId === image.id}
+                onMakeLead={() => setLeadImageId(image.id)}
+                onRemove={() => removeNewFile(index)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       <label

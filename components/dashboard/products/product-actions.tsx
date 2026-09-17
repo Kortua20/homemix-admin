@@ -1,11 +1,11 @@
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 
-import type { Product } from "@/components/products/types";
+import type { ProductListItem } from "@/lib/product-data";
 import { DeleteProductButton } from "@/components/products/delete-product-button";
 
 type ProductActionsProps = {
-  product: Product;
+  product: ProductListItem;
   compact?: boolean;
 };
 

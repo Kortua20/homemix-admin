@@ -3,11 +3,14 @@ import Link from "next/link";
 
 import { ProductActions } from "@/components/dashboard/products/product-actions";
 import { ProductStatusBadge } from "@/components/products/product-status-badge";
-import type { Product } from "@/components/products/types";
-import { formatPrice, getProductImageUrl } from "@/lib/product-data";
+import {
+  formatPrice,
+  getProductImageUrl,
+  type ProductListItem,
+} from "@/lib/product-data";
 
 type DesktopProductCardProps = {
-  product: Product;
+  product: ProductListItem;
 };
 
 export function DesktopProductCard({ product }: DesktopProductCardProps) {
@@ -19,10 +22,10 @@ export function DesktopProductCard({ product }: DesktopProductCardProps) {
         className="group"
       >
         <div className="flex h-48 items-center justify-center overflow-hidden rounded-xl bg-[#f0eded] text-[#a89082]">
-          {product.images[0] ? (
+          {product.leadImageId ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={getProductImageUrl(product.images[0].id)}
+              src={getProductImageUrl(product.leadImageId)}
               alt=""
               className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             />
@@ -39,7 +42,7 @@ export function DesktopProductCard({ product }: DesktopProductCardProps) {
             <ProductStatusBadge status={product.status} />
           </div>
           <p className="text-sm font-semibold leading-5 text-[#605e5b]">
-            {product.category.name}
+            {product.categoryName}
           </p>
         </div>
 

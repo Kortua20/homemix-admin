@@ -3,14 +3,14 @@ import Link from "next/link";
 
 import { ProductActions } from "@/components/dashboard/products/product-actions";
 import { ProductStatusBadge } from "@/components/products/product-status-badge";
-import type { Product } from "@/components/products/types";
 import {
   formatPrice,
   getProductImageUrl,
+  type ProductListItem,
 } from "@/lib/product-data";
 
 type MobileProductCardProps = {
-  product: Product;
+  product: ProductListItem;
 };
 
 export function MobileProductCard({ product }: MobileProductCardProps) {
@@ -22,10 +22,10 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
         className="flex min-w-0 flex-1 items-center gap-3 pr-9"
       >
         <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f0eded] text-[#a89082]">
-          {product.images[0] ? (
+          {product.leadImageId ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={getProductImageUrl(product.images[0].id)}
+              src={getProductImageUrl(product.leadImageId)}
               alt=""
               className="size-full object-cover"
             />
@@ -39,7 +39,7 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
             {product.name}
           </h2>
           <p className="mt-0.5 truncate text-[13px] leading-4 text-[#605e5b]">
-            {product.category.name}
+            {product.categoryName}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-[#7f512f]">

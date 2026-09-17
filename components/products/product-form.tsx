@@ -41,6 +41,7 @@ import {
   PRODUCT_STATUS_LABELS,
 } from "@/lib/product-data";
 import { createSlug } from "@/lib/slug";
+import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
 
 const initialProductActionState: ProductActionState = {
   status: "idle",
@@ -111,6 +112,29 @@ export function ProductForm({
   // resubmitting would leave the summary silently unchanged.
   const [submitToken, setSubmitToken] = useState(0);
 
+  // Dirtiness is tracked from the form's own input/change events rather than by comparing
+  // each field to its initial value: this form mixes controlled state (name, slug, listing
+  // kind) with uncontrolled inputs and two child components that own their own fields, so a
+  // per-field comparison would need every one of them to report upward and would silently
+  // miss whichever was added last. One listener on the form element catches all of them.
+  //
+  // The tradeoff is that typing a character and deleting it still counts as dirty. That
+  // errs toward one unnecessary prompt rather than toward silent data loss, which is the
+  // right direction for a form this expensive to refill.
+  const [dirty, setDirty] = useState(false);
+
+  // Derived, not tracked separately: the guard is off while a save is in flight, because the
+  // redirect that follows a successful one is not an escape attempt. It comes back on if the
+  // server returns errors, since the edits are then still on screen and still unsaved —
+  // which is exactly when someone is most likely to give up and navigate away.
+  //
+  // `pending` already describes the in-flight window, so there is no second flag to keep in
+  // step with it and no effect needed to clear one.
+  useUnsavedChangesWarning(
+    dirty && !pending,
+    "შენახვის გარეშე გასვლა? შეტანილი ცვლილებები დაიკარგება.",
+  );
+
   // Visual order, which is not the order the server validates in. The summary walks this
   // list so its links read top-to-bottom the way the form does, and each `id` is the real
   // input id so the anchor can focus it.
@@ -156,6 +180,11 @@ export function ProductForm({
     <form
       action={formAction}
       onSubmit={() => setSubmitToken((token) => token + 1)}
+      // Capture any edit anywhere in the form, including the image and flaw fields that own
+      // their own inputs. `onInput` bubbles from every native control, which `onChange`
+      // alone would not give us for the uncontrolled ones.
+      onInput={() => setDirty(true)}
+      onChange={() => setDirty(true)}
       className="mt-7 rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-8"
     >
       <FormErrorSummary
@@ -190,7 +219,7 @@ export function ProductForm({
             aria-describedby={
               state.fieldErrors?.name ? "product-name-error" : undefined
             }
-            className="h-12 border-[#d6c3b8] bg-white"
+            className="h-12 border-clay-border bg-white"
           />
           {state.fieldErrors?.name && (
             <FieldError id="product-name-error">{state.fieldErrors.name}</FieldError>
@@ -218,14 +247,14 @@ export function ProductForm({
                 ? "product-slug-error"
                 : "product-slug-help"
             }
-            className="h-12 border-[#d6c3b8] bg-white"
+            className="h-12 border-clay-border bg-white"
           />
           {state.fieldErrors?.slug ? (
             <FieldError id="product-slug-error">{state.fieldErrors.slug}</FieldError>
           ) : (
             <p
               id="product-slug-help"
-              className="text-xs leading-5 text-[#605e5b]"
+              className="text-xs leading-5 text-quiet-ink"
             >
               დასახელებიდან ავტომატურად შეიქმნება და შეგიძლიათ შეცვალოთ.
             </p>
@@ -248,7 +277,7 @@ export function ProductForm({
                 ? "product-category-error"
                 : undefined
             }
-            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
+            className="h-12 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30 aria-invalid:border-destructive aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-destructive/20"
           >
             <option value="" disabled>
               აირჩიეთ კატალოგი
@@ -284,9 +313,9 @@ export function ProductForm({
               aria-describedby={
                 state.fieldErrors?.price ? "product-price-error" : undefined
               }
-              className="h-12 border-[#d6c3b8] bg-white pr-10"
+              className="h-12 border-clay-border bg-white pr-10"
             />
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-[#605e5b]">
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-quiet-ink">
               ₾
             </span>
           </div>
@@ -317,9 +346,9 @@ export function ProductForm({
                   ? "product-compare-at-price-error"
                   : "product-compare-at-price-help"
               }
-              className="h-12 border-[#d6c3b8] bg-white pr-10"
+              className="h-12 border-clay-border bg-white pr-10"
             />
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-[#605e5b]">
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-quiet-ink">
               ₾
             </span>
           </div>
@@ -330,7 +359,7 @@ export function ProductForm({
           ) : (
             <p
               id="product-compare-at-price-help"
-              className="text-xs leading-5 text-[#605e5b]"
+              className="text-xs leading-5 text-quiet-ink"
             >
               შეავსეთ მხოლოდ ფასდაკლების დროს. უნდა იყოს მიმდინარე ფასზე მეტი —
               ფასდაკლების პროცენტი ავტომატურად გამოითვლება.
@@ -357,7 +386,7 @@ export function ProductForm({
                 ? "product-listing-kind-error"
                 : "product-listing-kind-help"
             }
-            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
+            className="h-12 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30 aria-invalid:border-destructive aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-destructive/20"
           >
             {LISTING_KIND_OPTIONS.map((kind) => (
               <option key={kind} value={kind}>
@@ -370,7 +399,7 @@ export function ProductForm({
           ) : (
             <p
               id="product-listing-kind-help"
-              className="text-xs leading-5 text-[#605e5b]"
+              className="text-xs leading-5 text-quiet-ink"
             >
               მეორადი ნივთი ერთეულია და მდგომარეობა სავალდებულოა; ახალ ნივთს
               მარაგი აქვს.
@@ -394,7 +423,7 @@ export function ProductForm({
                 ? "product-status-error"
                 : "product-status-help"
             }
-            className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
+            className="h-12 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30 aria-invalid:border-destructive aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-destructive/20"
           >
             {STATUS_OPTIONS.map((value) => (
               <option key={value} value={value}>
@@ -407,7 +436,7 @@ export function ProductForm({
           ) : (
             <p
               id="product-status-help"
-              className="text-xs leading-5 text-[#605e5b]"
+              className="text-xs leading-5 text-quiet-ink"
             >
               მხოლოდ „ხელმისაწვდომი“ ჩანს საიტის კატალოგში. „მონახაზი“ საიტზე არ
               გამოჩნდება.
@@ -430,7 +459,7 @@ export function ProductForm({
                     ? "product-condition-grade-error"
                     : "product-condition-grade-help"
                 }
-                className="h-12 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
+                className="h-12 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30 aria-invalid:border-destructive aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-destructive/20"
               >
                 <option value="" disabled>
                   აირჩიეთ მდგომარეობა
@@ -446,7 +475,7 @@ export function ProductForm({
               ) : (
                 <p
                   id="product-condition-grade-help"
-                  className="text-xs leading-5 text-[#605e5b]"
+                  className="text-xs leading-5 text-quiet-ink"
                 >
                   მეორადი ნივთისთვის სავალდებულოა — ეს ჩანს მყიდველისთვის.
                 </p>
@@ -470,14 +499,14 @@ export function ProductForm({
                     ? "product-condition-summary-error"
                     : "product-condition-summary-help"
                 }
-                className="w-full resize-y rounded-lg border border-[#d6c3b8] bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-[#83746b] focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
+                className="w-full resize-y rounded-lg border border-clay-border bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-soft-brown focus-visible:ring-2 focus-visible:ring-walnut/30 aria-invalid:border-destructive aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-destructive/20"
               />
               {state.fieldErrors?.conditionSummary ? (
                 <FieldError id="product-condition-summary-error">{state.fieldErrors.conditionSummary}</FieldError>
               ) : (
                 <p
                   id="product-condition-summary-help"
-                  className="text-xs leading-5 text-[#605e5b]"
+                  className="text-xs leading-5 text-quiet-ink"
                 >
                   აღწერეთ ნაკლოვანებები გულწრფელად — ეს ქმნის მყიდველის ნდობას.
                 </p>
@@ -502,14 +531,14 @@ export function ProductForm({
                   ? "product-stock-quantity-error"
                   : "product-stock-quantity-help"
               }
-              className="h-12 border-[#d6c3b8] bg-white"
+              className="h-12 border-clay-border bg-white"
             />
             {state.fieldErrors?.stockQuantity ? (
               <FieldError id="product-stock-quantity-error">{state.fieldErrors.stockQuantity}</FieldError>
             ) : (
               <p
                 id="product-stock-quantity-help"
-                className="text-xs leading-5 text-[#605e5b]"
+                className="text-xs leading-5 text-quiet-ink"
               >
                 ახალი პროდუქტის ხელმისაწვდომი რაოდენობა.
               </p>
@@ -521,10 +550,10 @@ export function ProductForm({
             Every field is optional — blank writes NULL, which the CHECK constraints treat
             as "not measured" rather than zero. */}
         <fieldset className="grid gap-3 lg:col-span-2">
-          <legend className="text-sm font-semibold text-[#1b1c1c]">
+          <legend className="text-sm font-semibold text-ink">
             ზომები
           </legend>
-          <p className="text-xs leading-5 text-[#605e5b]">
+          <p className="text-xs leading-5 text-quiet-ink">
             შეავსეთ რაც იცით. ცარიელი ველი ნიშნავს „არ არის გაზომილი“ — ეს
             მყიდველს ეხმარება გაიგოს, ეტევა თუ არა ნივთი მის სივრცეში.
           </p>
@@ -549,7 +578,7 @@ export function ProductForm({
                     ? "product-dimensions-error"
                     : undefined
                 }
-                className="h-12 border-[#d6c3b8] bg-white"
+                className="h-12 border-clay-border bg-white"
               />
             </div>
             <div className="grid gap-1.5">
@@ -562,7 +591,7 @@ export function ProductForm({
                 max="2000"
                 step="0.1"
                 defaultValue={product?.dimensions.depthCm ?? ""}
-                className="h-12 border-[#d6c3b8] bg-white"
+                className="h-12 border-clay-border bg-white"
               />
             </div>
             <div className="grid gap-1.5">
@@ -575,7 +604,7 @@ export function ProductForm({
                 max="2000"
                 step="0.1"
                 defaultValue={product?.dimensions.heightCm ?? ""}
-                className="h-12 border-[#d6c3b8] bg-white"
+                className="h-12 border-clay-border bg-white"
               />
             </div>
             <div className="grid gap-1.5">
@@ -589,7 +618,7 @@ export function ProductForm({
                 step="0.1"
                 defaultValue={product?.dimensions.seatHeightCm ?? ""}
                 placeholder="სკამებისთვის"
-                className="h-12 border-[#d6c3b8] bg-white"
+                className="h-12 border-clay-border bg-white"
               />
             </div>
             <div className="grid gap-1.5">
@@ -602,7 +631,7 @@ export function ProductForm({
                 max="1000"
                 step="0.01"
                 defaultValue={product?.dimensions.weightKg ?? ""}
-                className="h-12 border-[#d6c3b8] bg-white"
+                className="h-12 border-clay-border bg-white"
               />
             </div>
           </div>
@@ -615,7 +644,7 @@ export function ProductForm({
               defaultValue={product?.dimensions.note ?? ""}
               placeholder="მაგ.: მრგვალი — დიამეტრი 90 სმ; ან რეგულირებადი სიმაღლე."
               maxLength={500}
-              className="h-12 border-[#d6c3b8] bg-white"
+              className="h-12 border-clay-border bg-white"
             />
           </div>
 
@@ -639,14 +668,14 @@ export function ProductForm({
                 ? "product-description-error"
                 : "product-description-help"
             }
-            className="w-full resize-y rounded-lg border border-[#d6c3b8] bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-[#83746b] focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 aria-invalid:border-[#c62828] aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-[#c62828]/20"
+            className="w-full resize-y rounded-lg border border-clay-border bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-soft-brown focus-visible:ring-2 focus-visible:ring-walnut/30 aria-invalid:border-destructive aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-destructive/20"
           />
           {state.fieldErrors?.description ? (
             <FieldError id="product-description-error">{state.fieldErrors.description}</FieldError>
           ) : (
             <p
               id="product-description-help"
-              className="text-xs leading-5 text-[#605e5b]"
+              className="text-xs leading-5 text-quiet-ink"
             >
               აღწერა სურვილისამებრ შეგიძლიათ დატოვოთ ცარიელი.
             </p>
@@ -694,16 +723,16 @@ export function ProductForm({
       {state.status === "error" && state.message && (
         <p
           role="alert"
-          className="mt-5 rounded-xl bg-[#ffdad6] px-4 py-3 text-sm font-medium text-[#93000a]"
+          className="mt-5 rounded-xl bg-destructive-tint px-4 py-3 text-sm font-medium text-destructive-ink"
         >
           {state.message}
         </p>
       )}
 
-      <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[#e4e2e1] pt-5 sm:flex-row sm:justify-end">
+      <div className="mt-8 flex flex-col-reverse gap-3 border-t border-hairline pt-5 sm:flex-row sm:justify-end">
         <Link
           href={cancelHref}
-          className="inline-flex h-11.5 items-center justify-center rounded-lg border border-[#d6c3b8] px-5 text-sm font-semibold text-[#605e5b]"
+          className="inline-flex h-11.5 items-center justify-center rounded-lg border border-clay-border px-5 text-sm font-semibold text-quiet-ink"
         >
           გაუქმება
         </Link>

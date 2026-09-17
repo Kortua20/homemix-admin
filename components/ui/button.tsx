@@ -11,7 +11,7 @@ function Button({
     <ButtonPrimitive
       data-slot="button"
       className={cn(
-        "inline-flex h-[46px] items-center justify-center rounded-lg border border-transparent bg-[#7f512f] px-[17px] text-sm font-semibold tracking-[0.05em] text-white shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition-colors hover:bg-[#6d4528] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex h-11.5 items-center justify-center rounded-lg border border-transparent bg-walnut px-4.25 text-sm font-semibold tracking-wider text-white shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition-colors hover:bg-walnut-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-walnut/30 disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
       {...props}

@@ -21,7 +21,7 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
         aria-label={`${product.name} — დეტალების ნახვა`}
         className="flex min-w-0 flex-1 items-center gap-3 pr-9"
       >
-        <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#f0eded] text-[#a89082]">
+        <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-image-placeholder text-muted-brown">
           {product.leadImageId ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -35,14 +35,14 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <h2 className="line-clamp-2 text-[15px] font-semibold leading-5 text-[#1b1c1c]">
+          <h2 className="line-clamp-2 text-[15px] font-semibold leading-5 text-ink">
             {product.name}
           </h2>
-          <p className="mt-0.5 truncate text-[13px] leading-4 text-[#605e5b]">
+          <p className="mt-0.5 truncate text-[13px] leading-4 text-quiet-ink">
             {product.categoryName}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-[#7f512f]">
+            <span className="text-sm font-semibold text-walnut">
               {formatPrice(product.price)} ₾
             </span>
             <ProductStatusBadge status={product.status} />

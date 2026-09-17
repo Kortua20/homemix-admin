@@ -29,19 +29,19 @@ function AttributeGroup({
 
   return (
     <fieldset className="grid gap-2">
-      <legend className="text-sm font-semibold text-[#1b1c1c]">{legend}</legend>
+      <legend className="text-sm font-semibold text-ink">{legend}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <label
             key={option.code}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#d6c3b8] bg-white px-3 py-1.5 text-sm text-[#1b1c1c] transition-colors hover:border-[#7f512f] has-[:checked]:border-[#7f512f] has-[:checked]:bg-[#f9f3ef] has-[:checked]:font-semibold"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-clay-border bg-white px-3 py-1.5 text-sm text-ink transition-colors hover:border-walnut has-[:checked]:border-walnut has-[:checked]:bg-[#f9f3ef] has-[:checked]:font-semibold"
           >
             <input
               type="checkbox"
               name={name}
               value={option.code}
               defaultChecked={selectedSet.has(option.code)}
-              className="size-4 accent-[#7f512f]"
+              className="size-4 accent-walnut"
             />
             {withSwatch && option.hex ? (
               <span
@@ -78,16 +78,16 @@ export function ProductAttributeFields({
   return (
     <section
       aria-labelledby="product-attributes-heading"
-      className="grid gap-5 rounded-2xl border border-[#e4e2e1] p-4 lg:col-span-2 lg:p-5"
+      className="grid gap-5 rounded-2xl border border-hairline p-4 lg:col-span-2 lg:p-5"
     >
       <div>
         <h3
           id="product-attributes-heading"
-          className="text-base font-semibold text-[#1b1c1c]"
+          className="text-base font-semibold text-ink"
         >
           მასალა, ფერი და სტილი
         </h3>
-        <p className="mt-1 text-xs leading-5 text-[#605e5b]">
+        <p className="mt-1 text-xs leading-5 text-quiet-ink">
           სურვილისამებრ. ეს ველები მყიდველს ეხმარება მოძებნოს ზუსტად ის, რაც
           სჭირდება.
         </p>
@@ -114,7 +114,7 @@ export function ProductAttributeFields({
       />
 
       {serverError ? (
-        <p className="text-xs font-medium text-[#c62828]">{serverError}</p>
+        <p className="text-xs font-medium text-destructive">{serverError}</p>
       ) : null}
     </section>
   );

@@ -42,7 +42,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     <section className="px-5 pb-32 pt-5 lg:px-8 lg:pb-16 lg:pt-12 xl:px-16">
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-[#605e5b] transition-colors hover:text-[#7f512f]"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-quiet-ink transition-colors hover:text-walnut"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
         პროდუქტებზე დაბრუნება
@@ -51,7 +51,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm font-semibold text-[#7f512f]">
+            <p className="text-sm font-semibold text-walnut">
               {product.category.name}
             </p>
             <ProductStatusBadge status={product.status} />
@@ -64,7 +64,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <div className="grid grid-cols-2 gap-3 lg:flex lg:shrink-0">
           <Link
             href={`/product/${product.slug}/edit`}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#7f512f] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#6d4528]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-walnut px-5 text-sm font-semibold text-white transition-colors hover:bg-walnut-deep"
           >
             <Pencil aria-hidden="true" className="size-4" />
             რედაქტირება
@@ -92,8 +92,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   key={image.id}
                   className={
                     index === 0
-                      ? "col-span-2 aspect-4/3 overflow-hidden rounded-2xl bg-[#f0eded]"
-                      : "aspect-square overflow-hidden rounded-2xl bg-[#f0eded]"
+                      ? "col-span-2 aspect-4/3 overflow-hidden rounded-2xl bg-image-placeholder"
+                      : "aspect-square overflow-hidden rounded-2xl bg-image-placeholder"
                   }
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -111,11 +111,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
             aria-labelledby="product-photo-heading"
             className="flex min-h-72 flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:min-h-115"
           >
-            <ImageOff aria-hidden="true" className="size-12 text-[#a89082]" />
+            <ImageOff aria-hidden="true" className="size-12 text-muted-brown" />
             <h2 id="product-photo-heading" className="mt-4 text-xl font-bold">
               ფოტოები ჯერ არ არის
             </h2>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-[#605e5b]">
+            <p className="mt-2 max-w-sm text-sm leading-6 text-quiet-ink">
               ფოტოების დამატება პროდუქტის რედაქტირების გვერდიდან შეგიძლიათ.
             </p>
           </section>
@@ -129,28 +129,28 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <h2 id="general-information-heading" className="text-xl font-bold">
               ზოგადი ინფორმაცია
             </h2>
-            <dl className="mt-5 divide-y divide-[#e4e2e1]">
+            <dl className="mt-5 divide-y divide-hairline">
               <div className="flex items-center justify-between gap-4 py-4 first:pt-0">
-                <dt className="text-sm text-[#605e5b]">დასახელება</dt>
+                <dt className="text-sm text-quiet-ink">დასახელება</dt>
                 <dd className="max-w-[65%] text-right text-sm font-semibold">
                   {product.name}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4 py-4">
-                <dt className="text-sm text-[#605e5b]">კატალოგი</dt>
+                <dt className="text-sm text-quiet-ink">კატალოგი</dt>
                 <dd className="text-right text-sm font-semibold">
                   {product.category.name}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4 py-4">
-                <dt className="text-sm text-[#605e5b]">ტიპი</dt>
+                <dt className="text-sm text-quiet-ink">ტიპი</dt>
                 <dd className="text-right text-sm font-semibold">
                   {LISTING_KIND_LABELS[product.listingKind]}
                 </dd>
               </div>
               {product.listingKind === "new_stocked" ? (
                 <div className="flex items-center justify-between gap-4 py-4">
-                  <dt className="text-sm text-[#605e5b]">მარაგი</dt>
+                  <dt className="text-sm text-quiet-ink">მარაგი</dt>
                   <dd className="text-right text-sm font-semibold">
                     {product.stockQuantity ?? 0}
                   </dd>
@@ -162,7 +162,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   before roadmap step 4, which is why it is shown as an absence rather than
                   a date. */}
               <div className="flex items-center justify-between gap-4 py-4">
-                <dt className="text-sm text-[#605e5b]">გამოქვეყნდა</dt>
+                <dt className="text-sm text-quiet-ink">გამოქვეყნდა</dt>
                 <dd className="text-right text-sm font-semibold">
                   {product.publishedAt
                     ? new Date(product.publishedAt).toLocaleDateString("ka-GE")
@@ -170,13 +170,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4 pb-0 pt-4">
-                <dt className="text-sm text-[#605e5b]">ფასი</dt>
+                <dt className="text-sm text-quiet-ink">ფასი</dt>
                 <dd className="flex flex-col items-end gap-0.5">
-                  <span className="text-xl font-bold text-[#7f512f]">
+                  <span className="text-xl font-bold text-walnut">
                     {formatPrice(product.price)} ₾
                   </span>
                   {product.compareAtPrice !== null ? (
-                    <span className="text-xs text-[#605e5b]">
+                    <span className="text-xs text-quiet-ink">
                       <span className="sr-only">ძველი ფასი: </span>
                       <s>{formatPrice(product.compareAtPrice)} ₾</s>
                       {" · "}
@@ -208,7 +208,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               <h2 id="product-dimensions-heading" className="text-xl font-bold">
                 ზომები
               </h2>
-              <dl className="mt-5 divide-y divide-[#e4e2e1]">
+              <dl className="mt-5 divide-y divide-hairline">
                 {(
                   [
                     ["სიგანე", product.dimensions.widthCm, "სმ"],
@@ -224,7 +224,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                       key={label}
                       className="flex items-center justify-between gap-4 py-4 first:pt-0"
                     >
-                      <dt className="text-sm text-[#605e5b]">{label}</dt>
+                      <dt className="text-sm text-quiet-ink">{label}</dt>
                       <dd className="text-right text-sm font-semibold">
                         {value} {unit}
                       </dd>
@@ -232,7 +232,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   ))}
               </dl>
               {product.dimensions.note ? (
-                <p className="mt-4 border-t border-[#e4e2e1] pt-4 text-sm leading-6 text-[#605e5b]">
+                <p className="mt-4 border-t border-hairline pt-4 text-sm leading-6 text-quiet-ink">
                   {product.dimensions.note}
                 </p>
               ) : null}
@@ -247,18 +247,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
               <h2 id="product-condition-heading" className="text-xl font-bold">
                 მდგომარეობა
               </h2>
-              <p className="mt-3 text-sm font-semibold text-[#1b1c1c]">
+              <p className="mt-3 text-sm font-semibold text-ink">
                 {product.conditionGrade.labelKa}
               </p>
-              <p className="mt-1 text-sm leading-6 text-[#605e5b]">
+              <p className="mt-1 text-sm leading-6 text-quiet-ink">
                 {product.conditionGrade.descriptionKa}
               </p>
               {product.conditionSummary ? (
-                <p className="mt-4 whitespace-pre-wrap border-t border-[#e4e2e1] pt-4 text-[15px] leading-7 text-[#605e5b]">
+                <p className="mt-4 whitespace-pre-wrap border-t border-hairline pt-4 text-[15px] leading-7 text-quiet-ink">
                   {product.conditionSummary}
                 </p>
               ) : (
-                <p className="mt-4 border-t border-[#e4e2e1] pt-4 text-sm leading-6 text-[#8a6d1f]">
+                <p className="mt-4 border-t border-hairline pt-4 text-sm leading-6 text-[#8a6d1f]">
                   ნაკლოვანებების აღწერა ჯერ არ არის დამატებული.
                 </p>
               )}
@@ -272,7 +272,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <h2 id="product-description-heading" className="text-xl font-bold">
               აღწერა
             </h2>
-            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-[#605e5b]">
+            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-quiet-ink">
               {product.description || "აღწერა არ არის დამატებული."}
             </p>
           </section>

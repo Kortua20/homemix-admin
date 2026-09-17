@@ -1,6 +1,12 @@
 "use client";
 
-import { ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronDown,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -59,7 +65,13 @@ export function FilterBar({
   const primary = schema.find(
     (field) => field.kind === "text" && field.primary,
   );
-  const rest = schema.filter((field) => field !== primary);
+  // Sort sits in the always-visible bar rather than the collapsible panel: it is not a
+  // filter, and hiding the current ordering behind a toggle means a list can be sorted in a
+  // way the user cannot see.
+  const sortField = schema.find((field) => field.kind === "sort");
+  const rest = schema.filter(
+    (field) => field !== primary && field !== sortField,
+  );
 
   // Commits a change to the URL. Always resets to page 1: a new filter has nothing to do
   // with the page you were on, and keeping the offset lands on an empty page more often
@@ -80,7 +92,7 @@ export function FilterBar({
   };
 
   return (
-    <div className="rounded-3xl bg-white p-4 shadow-[0_10px_20px_rgba(0,0,0,0.04)] lg:mt-8 lg:rounded-xl lg:border lg:border-[#e4e2e1] lg:p-4 lg:shadow-[0_10px_20px_rgba(0,0,0,0.02)]">
+    <div className="rounded-3xl bg-white p-4 shadow-[0_10px_20px_rgba(0,0,0,0.04)] lg:mt-8 lg:rounded-xl lg:border lg:border-hairline lg:p-4 lg:shadow-[0_10px_20px_rgba(0,0,0,0.02)]">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         {primary && primary.kind === "text" ? (
           <PrimarySearch
@@ -93,8 +105,30 @@ export function FilterBar({
           />
         ) : null}
 
-        {rest.length > 0 ? (
-          <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          {sortField && sortField.kind === "sort" ? (
+            <label className="flex h-12 shrink-0 items-center gap-2 rounded-lg border border-clay-border bg-white px-3 text-sm text-quiet-ink focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-walnut">
+              <ArrowUpDown aria-hidden="true" className="size-4 shrink-0" />
+              <span className="sr-only">{sortField.label}</span>
+              <select
+                value={
+                  asText(values, sortField.param) || sortField.options[0].value
+                }
+                onChange={(event) =>
+                  commit({ ...values, [sortField.param]: event.target.value })
+                }
+                className="h-full cursor-pointer bg-transparent pr-1 text-sm font-semibold text-ink-soft outline-none"
+              >
+                {sortField.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {rest.length > 0 ? (
             <button
               type="button"
               onClick={() => setOpen((value) => !value)}
@@ -103,14 +137,14 @@ export function FilterBar({
               className={cn(
                 "inline-flex h-12 items-center gap-2 rounded-lg border px-4 text-sm font-semibold transition-colors",
                 activeCount > 0
-                  ? "border-[#7f512f] bg-[#fdf6f1] text-[#7f512f]"
-                  : "border-[#d6c3b8] bg-white text-[#2b2926] hover:bg-[#fcf9f8]",
+                  ? "border-walnut bg-[#fdf6f1] text-walnut"
+                  : "border-clay-border bg-white text-ink-soft hover:bg-warm-canvas",
               )}
             >
               <SlidersHorizontal aria-hidden="true" className="size-4" />
               ფილტრები
               {activeCount > 0 ? (
-                <span className="inline-flex size-5 items-center justify-center rounded-full bg-[#7f512f] text-xs font-bold text-white">
+                <span className="inline-flex size-5 items-center justify-center rounded-full bg-walnut text-xs font-bold text-white">
                   {activeCount}
                 </span>
               ) : null}
@@ -123,24 +157,25 @@ export function FilterBar({
               />
             </button>
 
-            {activeCount > 0 ? (
-              <button
-                type="button"
-                onClick={clearAll}
-                className="inline-flex h-12 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-[#605e5b] transition-colors hover:bg-[#f0eded]"
-              >
-                <X aria-hidden="true" className="size-4" />
-                გასუფთავება
-              </button>
-            ) : null}
-          </div>
-        ) : null}
+          ) : null}
+
+          {activeCount > 0 ? (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="inline-flex h-12 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-quiet-ink transition-colors hover:bg-image-placeholder"
+            >
+              <X aria-hidden="true" className="size-4" />
+              გასუფთავება
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {open && rest.length > 0 ? (
         <div
           id={panelId}
-          className="mt-4 grid gap-4 border-t border-[#e4e2e1] pt-4 sm:grid-cols-2 lg:grid-cols-3"
+          className="mt-4 grid gap-4 border-t border-hairline pt-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {rest.map((field) => (
             <FilterControl
@@ -211,7 +246,7 @@ function PrimarySearch({
     <div className="relative min-w-0 flex-1">
       <Search
         aria-hidden="true"
-        className="pointer-events-none absolute left-4 top-1/2 size-4.5 -translate-y-1/2 text-[#605e5b]"
+        className="pointer-events-none absolute left-4 top-1/2 size-4.5 -translate-y-1/2 text-quiet-ink"
       />
       <Input
         type="search"
@@ -219,7 +254,7 @@ function PrimarySearch({
         onChange={(event) => setDraft(event.target.value)}
         aria-label={field.label}
         placeholder={field.placeholder ?? field.label}
-        className="h-12 border-[#d6c3b8] bg-white pl-11 text-base placeholder:text-[#83746b] lg:border-transparent lg:bg-[#fcf9f8]"
+        className="h-12 border-clay-border bg-white pl-11 text-base placeholder:text-soft-brown lg:border-transparent lg:bg-warm-canvas"
       />
     </div>
   );
@@ -239,6 +274,11 @@ function FilterControl({
   const controlId = useId();
 
   switch (field.kind) {
+    // Rendered in the always-visible bar by FilterBar, never inside the panel. Handled here
+    // only so the switch stays exhaustive over FilterField.
+    case "sort":
+      return null;
+
     case "text":
       return (
         <div className="min-w-0">
@@ -253,7 +293,7 @@ function FilterControl({
             onBlur={(event) =>
               onChange({ ...values, [field.param]: event.target.value.trim() })
             }
-            className="mt-1.5 h-11 border-[#d6c3b8] bg-white"
+            className="mt-1.5 h-11 border-clay-border bg-white"
           />
         </div>
       );
@@ -270,7 +310,7 @@ function FilterControl({
             onChange={(event) =>
               onChange({ ...values, [field.param]: event.target.value })
             }
-            className="mt-1.5 h-11 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm text-[#2b2926] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7f512f]"
+            className="mt-1.5 h-11 w-full rounded-lg border border-clay-border bg-white px-3 text-sm text-ink-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-walnut"
           >
             <option value="">{field.placeholder ?? "ყველა"}</option>
             {field.options.map((option) => (
@@ -289,13 +329,13 @@ function FilterControl({
           <legend className="text-sm font-semibold">{field.label}</legend>
           {/* Capped height with scroll: colours and materials have 13-17 entries each, and
               three unbounded lists would push the results grid off the screen. */}
-          <div className="mt-1.5 max-h-40 space-y-1.5 overflow-y-auto rounded-lg border border-[#d6c3b8] bg-white p-2.5">
+          <div className="mt-1.5 max-h-40 space-y-1.5 overflow-y-auto rounded-lg border border-clay-border bg-white p-2.5">
             {field.options.map((option) => {
               const checked = selected.includes(option.value);
               return (
                 <label
                   key={option.value}
-                  className="flex cursor-pointer items-center gap-2 text-sm text-[#2b2926]"
+                  className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft"
                 >
                   <input
                     type="checkbox"
@@ -308,12 +348,12 @@ function FilterControl({
                           : [...selected, option.value],
                       })
                     }
-                    className="size-4 accent-[#7f512f]"
+                    className="size-4 accent-walnut"
                   />
                   {option.hex ? (
                     <span
                       aria-hidden="true"
-                      className="size-3.5 shrink-0 rounded-full border border-[#d6c3b8]"
+                      className="size-3.5 shrink-0 rounded-full border border-clay-border"
                       style={{ backgroundColor: option.hex }}
                     />
                   ) : null}
@@ -357,9 +397,9 @@ function FilterControl({
               onBlur={(event) =>
                 update({ ...range, min: parse(event.target.value) })
               }
-              className="h-11 border-[#d6c3b8] bg-white"
+              className="h-11 border-clay-border bg-white"
             />
-            <span aria-hidden="true" className="text-[#83746b]">
+            <span aria-hidden="true" className="text-soft-brown">
               —
             </span>
             <Input
@@ -373,7 +413,7 @@ function FilterControl({
               onBlur={(event) =>
                 update({ ...range, max: parse(event.target.value) })
               }
-              className="h-11 border-[#d6c3b8] bg-white"
+              className="h-11 border-clay-border bg-white"
             />
           </div>
         </fieldset>

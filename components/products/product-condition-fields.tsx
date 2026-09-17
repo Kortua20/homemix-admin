@@ -90,15 +90,15 @@ export function ProductConditionFields({
     <div className="grid gap-6 lg:col-span-2">
       <section
         aria-labelledby="condition-aspects-heading"
-        className="rounded-2xl border border-[#e4e2e1] p-4 lg:p-5"
+        className="rounded-2xl border border-hairline p-4 lg:p-5"
       >
         <h3
           id="condition-aspects-heading"
-          className="text-base font-semibold text-[#1b1c1c]"
+          className="text-base font-semibold text-ink"
         >
           მდგომარეობა დეტალურად
         </h3>
-        <p className="mt-1 text-xs leading-5 text-[#605e5b]">
+        <p className="mt-1 text-xs leading-5 text-quiet-ink">
           თითოეული ნაწილის ცალკე შეფასება მყიდველს ეხმარება გაიგოს, ეხება თუ არა
           ნაკლი მას. დატოვეთ ცარიელი, თუ არ ეხება ამ ნივთს.
         </p>
@@ -116,7 +116,7 @@ export function ProductConditionFields({
                   <Label htmlFor={`aspect-${aspect.code}`}>
                     {aspect.labelKa}
                   </Label>
-                  <p className="mt-0.5 text-xs leading-4 text-[#83746b]">
+                  <p className="mt-0.5 text-xs leading-4 text-soft-brown">
                     {aspect.descriptionKa}
                   </p>
                 </div>
@@ -125,7 +125,7 @@ export function ProductConditionFields({
                     id={`aspect-${aspect.code}`}
                     name={`aspectGrade_${aspect.code}`}
                     defaultValue={existing?.gradeCode ?? ""}
-                    className="h-11 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+                    className="h-11 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30"
                   >
                     <option value="">— არ ეხება —</option>
                     {grades.map((grade) => (
@@ -139,7 +139,7 @@ export function ProductConditionFields({
                     defaultValue={existing?.note ?? ""}
                     placeholder="შენიშვნა (სურვილისამებრ)"
                     maxLength={500}
-                    className="h-11 border-[#d6c3b8] bg-white"
+                    className="h-11 border-clay-border bg-white"
                   />
                 </div>
               </div>
@@ -150,17 +150,17 @@ export function ProductConditionFields({
 
       <section
         aria-labelledby="product-flaws-heading"
-        className="rounded-2xl border border-[#e4e2e1] p-4 lg:p-5"
+        className="rounded-2xl border border-hairline p-4 lg:p-5"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3
               id="product-flaws-heading"
-              className="text-base font-semibold text-[#1b1c1c]"
+              className="text-base font-semibold text-ink"
             >
               ნაკლოვანებები
             </h3>
-            <p className="mt-1 text-xs leading-5 text-[#605e5b]">
+            <p className="mt-1 text-xs leading-5 text-quiet-ink">
               ჩამოთვალეთ კონკრეტული ნაკლი და, სადაც შესაძლებელია, მიაბით ფოტო.
               ფოტოზე ნაჩვენები ნაკლი ნდობას იწვევს, დამალული — პირიქით.
             </p>
@@ -168,7 +168,7 @@ export function ProductConditionFields({
           <button
             type="button"
             onClick={() => setFlaws((current) => [...current, emptyFlawRow()])}
-            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-[#7f512f] px-4 text-sm font-semibold text-[#7f512f] transition-colors hover:bg-[#f9f3ef]"
+            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-walnut px-4 text-sm font-semibold text-walnut transition-colors hover:bg-[#f9f3ef]"
           >
             <Plus aria-hidden="true" className="size-4" />
             ნაკლის დამატება
@@ -176,7 +176,7 @@ export function ProductConditionFields({
         </div>
 
         {flaws.length === 0 ? (
-          <p className="mt-4 rounded-xl bg-[#f7f5f4] px-4 py-3 text-sm leading-6 text-[#605e5b]">
+          <p className="mt-4 rounded-xl bg-[#f7f5f4] px-4 py-3 text-sm leading-6 text-quiet-ink">
             ნაკლი ჯერ არ არის ჩამატებული. თუ ნივთს ნაკლი აქვს, დაამატეთ — ეს
             ამცირებს დაბრუნებებს და ზრდის ნდობას.
           </p>
@@ -191,7 +191,7 @@ export function ProductConditionFields({
                 <input type="hidden" name="flawKeys" value={flaw.key} />
 
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs font-semibold text-[#83746b]">
+                  <span className="text-xs font-semibold text-soft-brown">
                     ნაკლი {index + 1}
                   </span>
                   <button
@@ -202,7 +202,7 @@ export function ProductConditionFields({
                       )
                     }
                     aria-label={`ნაკლი ${index + 1} — ამოღება`}
-                    className="flex size-9 items-center justify-center rounded-lg text-[#c62828] transition-colors hover:bg-[#fdeceb]"
+                    className="flex size-9 items-center justify-center rounded-lg text-destructive transition-colors hover:bg-[#fdeceb]"
                   >
                     <Trash2 aria-hidden="true" className="size-4" />
                   </button>
@@ -218,7 +218,7 @@ export function ProductConditionFields({
                       onChange={(event) =>
                         updateFlaw(flaw.key, { flawType: event.target.value })
                       }
-                      className="h-11 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+                      className="h-11 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30"
                     >
                       {FLAW_TYPES.map((type) => (
                         <option key={type} value={type}>
@@ -239,7 +239,7 @@ export function ProductConditionFields({
                       onChange={(event) =>
                         updateFlaw(flaw.key, { severity: event.target.value })
                       }
-                      className="h-11 w-full rounded-lg border border-[#d6c3b8] bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+                      className="h-11 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30"
                     >
                       {FLAW_SEVERITIES.map((severity) => (
                         <option key={severity} value={severity}>
@@ -263,7 +263,7 @@ export function ProductConditionFields({
                     }
                     placeholder="მაგალითად: მარცხენა ფეხი"
                     maxLength={160}
-                    className="h-11 border-[#d6c3b8] bg-white"
+                    className="h-11 border-clay-border bg-white"
                   />
                 </div>
 
@@ -280,7 +280,7 @@ export function ProductConditionFields({
                     maxLength={500}
                     required
                     placeholder="რა არის ზუსტად და რამდენად შესამჩნევია."
-                    className="w-full resize-y rounded-lg border border-[#d6c3b8] bg-white px-3 py-2 text-sm leading-6 outline-none placeholder:text-[#83746b] focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+                    className="w-full resize-y rounded-lg border border-clay-border bg-white px-3 py-2 text-sm leading-6 outline-none placeholder:text-soft-brown focus-visible:ring-2 focus-visible:ring-walnut/30"
                   />
                 </div>
 
@@ -299,7 +299,7 @@ export function ProductConditionFields({
                   </legend>
 
                   {photos.length === 0 ? (
-                    <p className="text-xs leading-5 text-[#83746b]">
+                    <p className="text-xs leading-5 text-soft-brown">
                       ჯერ დაამატეთ ფოტოები, რომ ნაკლს ფოტო მიაბათ.
                     </p>
                   ) : (
@@ -328,10 +328,10 @@ export function ProductConditionFields({
                               title={photo.label}
                               className={cn(
                                 "block cursor-pointer overflow-hidden rounded-lg border-2 transition-colors",
-                                "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#7f512f]",
+                                "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-walnut",
                                 selected
-                                  ? "border-[#7f512f]"
-                                  : "border-transparent hover:border-[#d6c3b8]",
+                                  ? "border-walnut"
+                                  : "border-transparent hover:border-clay-border",
                               )}
                             >
                               {photo.previewUrl ? (
@@ -342,7 +342,7 @@ export function ProductConditionFields({
                                   className="size-16 object-cover"
                                 />
                               ) : (
-                                <span className="grid size-16 place-items-center bg-[#f3ede9] text-xs text-[#83746b]">
+                                <span className="grid size-16 place-items-center bg-[#f3ede9] text-xs text-soft-brown">
                                   {index + 1}
                                 </span>
                               )}
@@ -351,7 +351,7 @@ export function ProductConditionFields({
                             {selected ? (
                               <span
                                 aria-hidden="true"
-                                className="pointer-events-none absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-[#7f512f] text-white"
+                                className="pointer-events-none absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-walnut text-white"
                               >
                                 <Check className="size-3" />
                               </span>
@@ -378,10 +378,10 @@ export function ProductConditionFields({
                           htmlFor={`flaw-${flaw.key}-photo-none`}
                           className={cn(
                             "grid size-16 cursor-pointer place-items-center rounded-lg border-2 border-dashed px-1 text-center text-[11px] leading-tight transition-colors",
-                            "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#7f512f]",
+                            "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-walnut",
                             flaw.imageId === ""
-                              ? "border-[#7f512f] bg-[#f7f1ec] text-[#7f512f]"
-                              : "border-[#d6c3b8] text-[#83746b] hover:border-[#7f512f]",
+                              ? "border-walnut bg-[#f7f1ec] text-walnut"
+                              : "border-clay-border text-soft-brown hover:border-walnut",
                           )}
                         >
                           ფოტოს გარეშე
@@ -396,7 +396,7 @@ export function ProductConditionFields({
         )}
 
         {serverError ? (
-          <p className="mt-4 text-xs font-medium text-[#c62828]">
+          <p className="mt-4 text-xs font-medium text-destructive">
             {serverError}
           </p>
         ) : null}

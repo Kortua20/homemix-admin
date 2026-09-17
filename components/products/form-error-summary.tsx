@@ -49,7 +49,7 @@ export function FormErrorSummary({
 
   return (
     <div
-      className="mb-5 rounded-xl border border-[#f2b8b5] bg-[#ffdad6] px-4 py-3"
+      className="mb-5 rounded-xl border border-[#f2b8b5] bg-destructive-tint px-4 py-3"
       // "assertive" because the submit the person just made has failed and nothing else is
       // competing for the announcement.
       role="alert"
@@ -58,7 +58,7 @@ export function FormErrorSummary({
       <p
         ref={headingRef}
         tabIndex={-1}
-        className="flex items-center gap-2 text-sm font-semibold text-[#93000a] outline-none"
+        className="flex items-center gap-2 text-sm font-semibold text-destructive-ink outline-none"
       >
         <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
         {count === 1
@@ -74,7 +74,7 @@ export function FormErrorSummary({
                 tall. */}
             <a
               href={`#${field.id}`}
-              className="text-sm text-[#93000a] underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#93000a]"
+              className="text-sm text-destructive-ink underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive-ink"
               onClick={(event) => {
                 event.preventDefault();
                 const target = document.getElementById(field.id);
@@ -84,7 +84,7 @@ export function FormErrorSummary({
             >
               {field.label}
             </a>
-            <span className="text-sm text-[#93000a]"> — {field.message}</span>
+            <span className="text-sm text-destructive-ink"> — {field.message}</span>
           </li>
         ))}
       </ul>

@@ -58,11 +58,32 @@ export type RangeFilterField = {
   max?: number;
 };
 
+// Ordering, not filtering — but it belongs to the same URL state and the same bar, so it
+// rides in the schema rather than as a parallel mechanism.
+//
+// Each option carries the column and direction, so the query layer applies it without a
+// second lookup table, and an unrecognised `?sort=` falls back to the first option rather
+// than reaching the database.
+export type SortOption = {
+  value: string;
+  label: string;
+  column: string;
+  ascending: boolean;
+};
+
+export type SortFilterField = {
+  kind: "sort";
+  param: string;
+  label: string;
+  options: SortOption[];
+};
+
 export type FilterField =
   | TextFilterField
   | SelectFilterField
   | MultiFilterField
-  | RangeFilterField;
+  | RangeFilterField
+  | SortFilterField;
 
 export type FilterSchema = readonly FilterField[];
 
@@ -86,6 +107,25 @@ export function asText(values: FilterValues, param: string): string {
 export function asList(values: FilterValues, param: string): string[] {
   const value = values[param];
   return Array.isArray(value) ? value : [];
+}
+
+// The chosen sort, or the schema's first option when nothing valid is set. Never null, so
+// callers always have a deterministic order — an unordered paginated list duplicates and
+// drops rows between pages.
+export function resolveSort(
+  schema: FilterSchema,
+  values: FilterValues,
+): SortOption | null {
+  const field = schema.find((entry) => entry.kind === "sort");
+  if (!field || field.kind !== "sort" || field.options.length === 0) return null;
+
+  const selected = values[field.param];
+  const match =
+    typeof selected === "string"
+      ? field.options.find((option) => option.value === selected)
+      : undefined;
+
+  return match ?? field.options[0];
 }
 
 export function asRange(values: FilterValues, param: string): RangeValue {

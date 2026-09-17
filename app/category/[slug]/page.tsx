@@ -39,7 +39,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     <section className="px-5 pb-32 pt-5 lg:px-8 lg:pb-16 lg:pt-12 xl:px-16">
       <Link
         href="/categories"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-[#605e5b] transition-colors hover:text-[#7f512f]"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-quiet-ink transition-colors hover:text-walnut"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
         კატალოგზე დაბრუნება
@@ -47,7 +47,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
       <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-[#7f512f]">
+          <p className="text-sm font-semibold text-walnut">
             /{category.slug}
           </p>
           <h1 className="mt-2 text-3xl font-bold leading-tight tracking-[-0.02em] lg:text-5xl">
@@ -58,7 +58,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         <div className="grid grid-cols-2 gap-3 lg:flex lg:shrink-0">
           <Link
             href={`/category/${category.slug}/edit`}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#7f512f] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#6d4528]"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-walnut px-5 text-sm font-semibold text-white transition-colors hover:bg-walnut-deep"
           >
             <Pencil aria-hidden="true" className="size-4" />
             რედაქტირება
@@ -86,8 +86,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                   key={image.id}
                   className={
                     index === 0
-                      ? "col-span-2 aspect-4/3 overflow-hidden rounded-2xl bg-[#f0eded]"
-                      : "aspect-square overflow-hidden rounded-2xl bg-[#f0eded]"
+                      ? "col-span-2 aspect-4/3 overflow-hidden rounded-2xl bg-image-placeholder"
+                      : "aspect-square overflow-hidden rounded-2xl bg-image-placeholder"
                   }
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -105,11 +105,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             aria-labelledby="category-photo-heading"
             className="flex min-h-72 flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:min-h-115"
           >
-            <ImageOff aria-hidden="true" className="size-12 text-[#a89082]" />
+            <ImageOff aria-hidden="true" className="size-12 text-muted-brown" />
             <h2 id="category-photo-heading" className="mt-4 text-xl font-bold">
               ფოტოები ჯერ არ არის
             </h2>
-            <p className="mt-2 max-w-sm text-sm leading-6 text-[#605e5b]">
+            <p className="mt-2 max-w-sm text-sm leading-6 text-quiet-ink">
               ფოტოების დამატება კატალოგის რედაქტირების გვერდიდან შეგიძლიათ.
             </p>
           </section>
@@ -123,15 +123,15 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             <h2 id="category-information-heading" className="text-xl font-bold">
               ზოგადი ინფორმაცია
             </h2>
-            <dl className="mt-5 divide-y divide-[#e4e2e1]">
+            <dl className="mt-5 divide-y divide-hairline">
               <div className="flex items-center justify-between gap-4 py-4 first:pt-0">
-                <dt className="text-sm text-[#605e5b]">დასახელება</dt>
+                <dt className="text-sm text-quiet-ink">დასახელება</dt>
                 <dd className="max-w-[65%] text-right text-sm font-semibold">
                   {category.name}
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-4 pb-0 pt-4">
-                <dt className="text-sm text-[#605e5b]">სლაგი</dt>
+                <dt className="text-sm text-quiet-ink">სლაგი</dt>
                 <dd className="text-right text-sm font-semibold">
                   /{category.slug}
                 </dd>
@@ -146,7 +146,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             <h2 id="category-description-heading" className="text-xl font-bold">
               აღწერა
             </h2>
-            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-[#605e5b]">
+            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-7 text-quiet-ink">
               {category.description || "აღწერა არ არის დამატებული."}
             </p>
           </section>

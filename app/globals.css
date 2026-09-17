@@ -2,8 +2,62 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@theme inline {
+/* The admin's colour tokens.
+ *
+ * Names follow DESIGN.md so the two apps describe the same palette the same way. Before
+ * this, 434 raw hex literals were spread across 38 files, and the near-duplicates that
+ * produced (#fdeceb beside #fdecea, #f2b8b5 beside #f1b7b2) are exactly the drift a token
+ * layer exists to stop.
+ *
+ * Tailwind v4 reads @theme, so every token here is usable as a utility: text-quiet-ink,
+ * bg-warm-canvas, border-clay-border.
+ */
+@theme {
   --font-sans: var(--font-manrope);
+
+  /* Surfaces */
+  --color-warm-canvas: #fcf9f8;
+  --color-soft-linen: #f6f3f2;
+  --color-warm-mist: #e6e2de;
+  --color-image-placeholder: #f0eded;
+  --color-hairline: #e4e2e1;
+
+  /* Text */
+  --color-ink: #1b1c1c;
+  --color-ink-soft: #2b2926;
+  --color-quiet-ink: #605e5b;
+  /* Was #83746b, which measured 4.49:1 on white — failing WCAG AA by 0.01. This value
+   * clears 4.5:1 on white, warm-canvas, soft-linen and image-placeholder alike. */
+  --color-soft-brown: #786961;
+  --color-muted-brown: #a89082;
+
+  /* Brand */
+  --color-walnut: #7f512f;
+  --color-walnut-deep: #6d4528;
+  --color-clay-border: #d6c3b8;
+
+  /* Feedback. The admin's destructive red is #c62828, not DESIGN.md's #a33c32 — that one
+   * belongs to the storefront. Kept distinct rather than reconciled, because changing a
+   * delete button's colour is a design decision, not a refactor. */
+  --color-destructive: #c62828;
+  --color-destructive-deep: #a61f1f;
+  --color-destructive-surface: #fdecea;
+  --color-destructive-ink: #93000a;
+  --color-destructive-tint: #ffdad6;
+  --color-success-ink: #287d3c;
+
+  /* Status badges. One pair per product status, so the badge palette is legible as a set
+   * rather than as ten unrelated literals. */
+  --color-status-draft-surface: #f0eded;
+  --color-status-draft-ink: #605e5b;
+  --color-status-available-surface: #e3f1e6;
+  --color-status-available-ink: #1d4a38;
+  --color-status-reserved-surface: #fdf0d9;
+  --color-status-reserved-ink: #7a5312;
+  --color-status-sold-surface: #e8e6f3;
+  --color-status-sold-ink: #443a72;
+  --color-status-archived-surface: #f5e2e0;
+  --color-status-archived-ink: #8c2f26;
 }
 
 @layer base {

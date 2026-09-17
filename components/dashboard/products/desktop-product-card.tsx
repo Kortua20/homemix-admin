@@ -21,7 +21,7 @@ export function DesktopProductCard({ product }: DesktopProductCardProps) {
         aria-label={`${product.name} — დეტალების ნახვა`}
         className="group"
       >
-        <div className="flex h-48 items-center justify-center overflow-hidden rounded-xl bg-[#f0eded] text-[#a89082]">
+        <div className="flex h-48 items-center justify-center overflow-hidden rounded-xl bg-image-placeholder text-muted-brown">
           {product.leadImageId ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -36,18 +36,18 @@ export function DesktopProductCard({ product }: DesktopProductCardProps) {
 
         <div className="flex min-h-28 flex-col gap-1 py-4">
           <div className="flex items-start justify-between gap-3">
-            <h2 className="line-clamp-2 text-2xl font-semibold leading-[1.3] text-[#1b1c1c] transition-colors group-hover:text-[#7f512f]">
+            <h2 className="line-clamp-2 text-2xl font-semibold leading-[1.3] text-ink transition-colors group-hover:text-walnut">
               {product.name}
             </h2>
             <ProductStatusBadge status={product.status} />
           </div>
-          <p className="text-sm font-semibold leading-5 text-[#605e5b]">
+          <p className="text-sm font-semibold leading-5 text-quiet-ink">
             {product.categoryName}
           </p>
         </div>
 
-        <div className="border-t border-[#e4e2e1] py-4">
-          <span className="text-2xl font-semibold text-[#7f512f]">
+        <div className="border-t border-hairline py-4">
+          <span className="text-2xl font-semibold text-walnut">
             {formatPrice(product.price)} ₾
           </span>
         </div>

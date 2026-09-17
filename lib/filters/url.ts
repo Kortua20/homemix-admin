@@ -57,11 +57,12 @@ export function parseFilters(
           .slice(0, MAX_TEXT_LENGTH);
         break;
       }
-      case "select": {
+      case "select":
+      case "sort": {
         const raw = firstValue(params[field.param]).trim();
-        // Validated against the declared options rather than passed through: this value
-        // reaches an eq() filter, and an unknown one should read as "no filter" instead of
-        // silently returning nothing.
+        // Validated against the declared options rather than passed through: these values
+        // reach an eq() filter or an order() column, and an unknown one should read as
+        // "not set" instead of silently returning nothing or throwing.
         values[field.param] = field.options.some((o) => o.value === raw)
           ? raw
           : "";
@@ -99,6 +100,9 @@ export function hasActiveFilters(
   values: FilterValues,
 ): boolean {
   return schema.some((field) => {
+    // Sorting is not filtering: it reorders the same rows rather than narrowing them, so a
+    // changed sort must not make an empty result read as "no matches — clear your filters".
+    if (field.kind === "sort") return false;
     const value = values[field.param];
     if (field.kind === "multi") return Array.isArray(value) && value.length > 0;
     if (field.kind === "range") {
@@ -119,6 +123,9 @@ export function countActiveFilters(
 ): number {
   return schema.filter((field) => {
     if (field.kind === "text" && field.primary) return false;
+    // Excluded for the same reason as in hasActiveFilters, and because the sort control is
+    // always visible rather than hidden in the panel the badge describes.
+    if (field.kind === "sort") return false;
     const value = values[field.param];
     if (field.kind === "multi") return Array.isArray(value) && value.length > 0;
     if (field.kind === "range") {
@@ -141,7 +148,8 @@ export function serializeFilters(
     const value = values[field.param];
     switch (field.kind) {
       case "text":
-      case "select": {
+      case "select":
+      case "sort": {
         if (typeof value === "string" && value) params.set(field.param, value);
         break;
       }

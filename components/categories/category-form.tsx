@@ -81,12 +81,12 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
             aria-describedby={
               state.fieldErrors?.name ? "category-name-error" : undefined
             }
-            className="h-12 border-[#d6c3b8] bg-white"
+            className="h-12 border-clay-border bg-white"
           />
           {state.fieldErrors?.name && (
             <p
               id="category-name-error"
-              className="text-xs font-medium text-[#c62828]"
+              className="text-xs font-medium text-destructive"
             >
               {state.fieldErrors.name}
             </p>
@@ -111,19 +111,19 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
                 ? "category-slug-error"
                 : "category-slug-help"
             }
-            className="h-12 border-[#d6c3b8] bg-white"
+            className="h-12 border-clay-border bg-white"
           />
           {state.fieldErrors?.slug ? (
             <p
               id="category-slug-error"
-              className="text-xs font-medium text-[#c62828]"
+              className="text-xs font-medium text-destructive"
             >
               {state.fieldErrors.slug}
             </p>
           ) : (
             <p
               id="category-slug-help"
-              className="text-xs leading-5 text-[#605e5b]"
+              className="text-xs leading-5 text-quiet-ink"
             >
               დასახელებიდან ავტომატურად შეიქმნება; სურვილის შემთხვევაში
               შეცვალეთ.
@@ -146,19 +146,19 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
                 ? "category-description-error"
                 : "category-description-help"
             }
-            className="w-full resize-y rounded-lg border border-[#d6c3b8] bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-[#83746b] focus-visible:ring-2 focus-visible:ring-[#7f512f]/30"
+            className="w-full resize-y rounded-lg border border-clay-border bg-white px-3 py-3 text-sm leading-6 outline-none placeholder:text-soft-brown focus-visible:ring-2 focus-visible:ring-walnut/30"
           />
           {state.fieldErrors?.description ? (
             <p
               id="category-description-error"
-              className="text-xs font-medium text-[#c62828]"
+              className="text-xs font-medium text-destructive"
             >
               {state.fieldErrors.description}
             </p>
           ) : (
             <p
               id="category-description-help"
-              className="text-xs leading-5 text-[#605e5b]"
+              className="text-xs leading-5 text-quiet-ink"
             >
               აღწერა სურვილისამებრ შეგიძლიათ დატოვოთ ცარიელი.
             </p>
@@ -174,16 +174,16 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
       {state.status === "error" && state.message && (
         <p
           role="alert"
-          className="mt-5 rounded-xl bg-[#ffdad6] px-4 py-3 text-sm font-medium text-[#93000a]"
+          className="mt-5 rounded-xl bg-destructive-tint px-4 py-3 text-sm font-medium text-destructive-ink"
         >
           {state.message}
         </p>
       )}
 
-      <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[#e4e2e1] pt-5 sm:flex-row sm:justify-end">
+      <div className="mt-8 flex flex-col-reverse gap-3 border-t border-hairline pt-5 sm:flex-row sm:justify-end">
         <Link
           href={cancelHref}
-          className="inline-flex h-11.5 items-center justify-center rounded-lg border border-[#d6c3b8] px-5 text-sm font-semibold text-[#605e5b]"
+          className="inline-flex h-11.5 items-center justify-center rounded-lg border border-clay-border px-5 text-sm font-semibold text-quiet-ink"
         >
           გაუქმება
         </Link>

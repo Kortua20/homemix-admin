@@ -39,7 +39,7 @@ function pageItems(page: number, pageCount: number): (number | null)[] {
 }
 
 const baseLinkClass =
-  "inline-flex h-10 min-w-10 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7f512f]";
+  "inline-flex h-10 min-w-10 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-walnut";
 
 export function Pagination({
   page,
@@ -64,7 +64,7 @@ export function Pagination({
           href={buildHref(page - 1)}
           rel="prev"
           aria-label="წინა გვერდი"
-          className={cn(baseLinkClass, "text-[#2b2926] hover:bg-[#f0eded]")}
+          className={cn(baseLinkClass, "text-ink-soft hover:bg-image-placeholder")}
         >
           <ChevronLeft className="size-4" aria-hidden="true" />
         </Link>
@@ -79,7 +79,7 @@ export function Pagination({
           <span
             key={`gap-${index}`}
             aria-hidden="true"
-            className="inline-flex h-10 w-6 items-center justify-center text-sm text-[#83746b]"
+            className="inline-flex h-10 w-6 items-center justify-center text-sm text-soft-brown"
           >
             …
           </span>
@@ -87,7 +87,7 @@ export function Pagination({
           <span
             key={item}
             aria-current="page"
-            className={cn(baseLinkClass, "bg-[#7f512f] text-white")}
+            className={cn(baseLinkClass, "bg-walnut text-white")}
           >
             {item}
           </span>
@@ -96,7 +96,7 @@ export function Pagination({
             key={item}
             href={buildHref(item)}
             aria-label={`გვერდი ${item}`}
-            className={cn(baseLinkClass, "text-[#2b2926] hover:bg-[#f0eded]")}
+            className={cn(baseLinkClass, "text-ink-soft hover:bg-image-placeholder")}
           >
             {item}
           </Link>
@@ -108,7 +108,7 @@ export function Pagination({
           href={buildHref(page + 1)}
           rel="next"
           aria-label="შემდეგი გვერდი"
-          className={cn(baseLinkClass, "text-[#2b2926] hover:bg-[#f0eded]")}
+          className={cn(baseLinkClass, "text-ink-soft hover:bg-image-placeholder")}
         >
           <ChevronRight className="size-4" aria-hidden="true" />
         </Link>

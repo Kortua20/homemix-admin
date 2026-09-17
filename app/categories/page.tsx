@@ -22,10 +22,10 @@ export default async function CategoriesPage() {
         <div className="rounded-3xl bg-white px-6 py-14 text-center shadow-[0_16px_30px_rgba(0,0,0,0.04)]">
           <AlertCircle
             aria-hidden="true"
-            className="mx-auto size-9 text-[#c62828]"
+            className="mx-auto size-9 text-destructive"
           />
           <h1 className="mt-4 text-2xl font-bold">კატალოგი ვერ ჩაიტვირთა</h1>
-          <p className="mt-2 text-sm leading-6 text-[#605e5b]">
+          <p className="mt-2 text-sm leading-6 text-quiet-ink">
             გთხოვთ, განაახლოთ გვერდი ან მოგვიანებით სცადოთ.
           </p>
         </div>

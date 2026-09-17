@@ -49,7 +49,7 @@ export function ProductsDashboard({
         <h1 className="text-5xl font-bold leading-[1.1] tracking-[-0.02em]">
           პროდუქტები
         </h1>
-        <p className="mt-2 text-base leading-relaxed text-[#605e5b]">
+        <p className="mt-2 text-base leading-relaxed text-quiet-ink">
           მართეთ პროდუქტები, ფასები და მათი დეტალები.
         </p>
       </div>
@@ -63,7 +63,7 @@ export function ProductsDashboard({
 
       {result !== null && result.total > 0 ? (
         <p
-          className="mt-3 px-1 text-sm text-[#605e5b]"
+          className="mt-3 px-1 text-sm text-quiet-ink"
           role="status"
           aria-live="polite"
         >
@@ -78,12 +78,12 @@ export function ProductsDashboard({
         <div className="mt-4 rounded-3xl bg-white px-6 py-14 text-center shadow-[0_10px_20px_rgba(0,0,0,0.04)] lg:mt-6">
           <AlertCircle
             aria-hidden="true"
-            className="mx-auto size-8 text-[#c62828]"
+            className="mx-auto size-8 text-destructive"
           />
           <h2 className="mt-3 text-lg font-semibold">
             პროდუქტები ვერ ჩაიტვირთა
           </h2>
-          <p className="mt-1 text-sm text-[#605e5b]">
+          <p className="mt-1 text-sm text-quiet-ink">
             განაახლეთ გვერდი ან მოგვიანებით სცადეთ.
           </p>
         </div>
@@ -91,15 +91,15 @@ export function ProductsDashboard({
         <div className="mt-4 rounded-3xl bg-white px-6 py-14 text-center shadow-[0_10px_20px_rgba(0,0,0,0.04)] lg:mt-6">
           <Package
             aria-hidden="true"
-            className="mx-auto size-8 text-[#83746b]"
+            className="mx-auto size-8 text-soft-brown"
           />
           <h2 className="mt-3 text-lg font-semibold">ეს გვერდი ცარიელია</h2>
-          <p className="mt-1 text-sm text-[#605e5b]">
+          <p className="mt-1 text-sm text-quiet-ink">
             შესაძლოა პროდუქტები შეიცვალა.
           </p>
           <Link
             href={buildListHref(pathname, schema, values, 1)}
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-[#7f512f] px-5 text-sm font-semibold text-white"
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-walnut px-5 text-sm font-semibold text-white"
           >
             პირველი გვერდი
           </Link>
@@ -133,14 +133,14 @@ export function ProductsDashboard({
         <div className="mt-4 rounded-3xl bg-white px-6 py-14 text-center shadow-[0_10px_20px_rgba(0,0,0,0.04)] lg:mt-6">
           <Package
             aria-hidden="true"
-            className="mx-auto size-8 text-[#83746b]"
+            className="mx-auto size-8 text-soft-brown"
           />
           <h2 className="mt-3 text-lg font-semibold">
             {filtersActive
               ? "პროდუქტი ვერ მოიძებნა"
               : "პროდუქტები ჯერ არ არის"}
           </h2>
-          <p className="mt-1 text-sm text-[#605e5b]">
+          <p className="mt-1 text-sm text-quiet-ink">
             {filtersActive
               ? "შეცვალეთ ან გაასუფთავეთ ფილტრები."
               : "შექმენით პირველი პროდუქტი."}
@@ -148,7 +148,7 @@ export function ProductsDashboard({
           {!filtersActive && (
             <Link
               href="/product/new"
-              className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#7f512f] px-5 text-sm font-semibold text-white"
+              className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-walnut px-5 text-sm font-semibold text-white"
             >
               <Plus aria-hidden="true" className="size-4" />
               პროდუქტის შექმნა

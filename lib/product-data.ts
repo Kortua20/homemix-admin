@@ -14,6 +14,7 @@ import {
 } from "@/lib/filters/query";
 import {
   asList,
+  resolveSort,
   type FilterSchema,
   type FilterValues,
 } from "@/lib/filters/types";
@@ -191,6 +192,9 @@ export const productFilterBindings: FilterBindings = {
   materials: { type: "external" },
   colours: { type: "external" },
   styles: { type: "external" },
+  // Ordering, applied by .order() below rather than as a filter. Declared so the
+  // unbound-param guard in applyFilterBindings knows it is handled on purpose.
+  sort: { type: "external" },
 };
 
 // Resolves the attribute facets to the set of product ids carrying all of them.
@@ -304,14 +308,21 @@ export async function getDashboardProducts(
     return attributeIds === null ? next : next.in("id", attributeIds);
   };
 
-  // Unlike the storefront this lists every status, so it sorts on the full-table
-  // products_created_at_idx rather than the available-only partial index. The id tiebreak
-  // makes the order total, which is what keeps offset paging from duplicating or skipping
-  // rows that share a created_at.
+  // Unlike the storefront this lists every status, so the default order runs on the
+  // full-table products_created_at_idx rather than the available-only partial index.
+  //
+  // resolveSort never returns null for a schema that declares a sort field, and falls back
+  // to its first option for an unrecognised value — so the order is always deterministic.
+  // The id tiebreak is appended whatever the chosen column is: without a total order, offset
+  // paging duplicates rows onto later pages and drops others entirely, and `price` and
+  // `name` tie far more often than a timestamp does.
+  const sort = resolveSort(schema, values);
   const { data, error, count } = await applyAll(
     supabase.from("products").select(productListSelect, { count: "exact" }),
   )
-    .order("created_at", { ascending: false })
+    .order(sort?.column ?? "created_at", {
+      ascending: sort?.ascending ?? false,
+    })
     .order("id", { ascending: true })
     .range(from, from + DASHBOARD_PAGE_SIZE - 1);
 

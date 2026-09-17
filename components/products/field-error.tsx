@@ -11,7 +11,7 @@ export function FieldError({ id, children }: { id: string; children: string }) {
   return (
     <p
       id={id}
-      className="flex items-start gap-1.5 text-xs font-medium text-[#c62828]"
+      className="flex items-start gap-1.5 text-xs font-medium text-destructive"
     >
       <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
       <span>{children}</span>
@@ -23,7 +23,7 @@ export function FieldError({ id, children }: { id: string; children: string }) {
 // `required`, which screen readers announce — reading "star" after every label is noise.
 export function RequiredMark() {
   return (
-    <span aria-hidden="true" className="ml-0.5 text-[#c62828]">
+    <span aria-hidden="true" className="ml-0.5 text-destructive">
       *
     </span>
   );

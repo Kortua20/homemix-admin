@@ -49,21 +49,21 @@ function NewImagePreview({
   onRemove: () => void;
 }) {
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-2xl bg-[#f0eded]">
+    <div className="group relative aspect-square overflow-hidden rounded-2xl bg-image-placeholder">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={image.previewUrl}
         alt={image.file.name}
         className="size-full object-cover"
       />
-      <span className="absolute bottom-2 left-2 rounded-full bg-[#1b1c1c]/75 px-2 py-1 text-[10px] font-semibold text-white">
+      <span className="absolute bottom-2 left-2 rounded-full bg-ink/75 px-2 py-1 text-[10px] font-semibold text-white">
         ახალი
       </span>
       <button
         type="button"
         onClick={onRemove}
         aria-label={`${image.file.name} — ამოღება`}
-        className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-white/95 text-[#c62828] shadow-md"
+        className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-white/95 text-destructive shadow-md"
       >
         <Trash2 aria-hidden="true" className="size-4" />
       </button>
@@ -279,7 +279,7 @@ export function ProductImagesField({
     <div className="grid gap-3 lg:col-span-2">
       <div className="flex items-center justify-between gap-4">
         <Label htmlFor="product-images">ფოტოები</Label>
-        <span className="text-xs font-medium text-[#83746b]">
+        <span className="text-xs font-medium text-soft-brown">
           {totalVisibleImages}/{MAX_PRODUCT_IMAGES}
         </span>
       </div>
@@ -310,7 +310,7 @@ export function ProductImagesField({
           {visibleExistingImages.map((image) => (
             <div
               key={image.id}
-              className="group relative aspect-square overflow-hidden rounded-2xl bg-[#f0eded]"
+              className="group relative aspect-square overflow-hidden rounded-2xl bg-image-placeholder"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -322,7 +322,7 @@ export function ProductImagesField({
                 type="button"
                 onClick={() => removeExistingImage(image.id)}
                 aria-label={`${image.originalName} — წაშლა`}
-                className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-white/95 text-[#c62828] shadow-md"
+                className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-white/95 text-destructive shadow-md"
               >
                 <Trash2 aria-hidden="true" className="size-4" />
               </button>
@@ -342,13 +342,13 @@ export function ProductImagesField({
       <label
         htmlFor="product-images"
         aria-disabled={processing}
-        className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#c9b2a4] bg-[#fcf9f8] px-5 py-6 text-center transition-colors hover:border-[#7f512f] hover:bg-[#f9f3ef] aria-disabled:cursor-wait aria-disabled:opacity-60"
+        className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-[#c9b2a4] bg-warm-canvas px-5 py-6 text-center transition-colors hover:border-walnut hover:bg-[#f9f3ef] aria-disabled:cursor-wait aria-disabled:opacity-60"
       >
-        <ImagePlus aria-hidden="true" className="size-7 text-[#7f512f]" />
-        <span className="mt-2 text-sm font-semibold text-[#1b1c1c]">
+        <ImagePlus aria-hidden="true" className="size-7 text-walnut" />
+        <span className="mt-2 text-sm font-semibold text-ink">
           ფოტოების არჩევა
         </span>
-        <span className="mt-1 text-xs leading-5 text-[#605e5b]">
+        <span className="mt-1 text-xs leading-5 text-quiet-ink">
           JPG, PNG, WebP ან iPhone ფოტო · დიდი ფოტოები ავტომატურად შემცირდება
         </span>
       </label>
@@ -367,7 +367,7 @@ export function ProductImagesField({
       />
 
       {newImages.length > 0 && (
-        <p className="text-xs leading-5 text-[#605e5b]">
+        <p className="text-xs leading-5 text-quiet-ink">
           არჩეულია {newImages.length} ახალი ფოტო (
           {formatFileSize(
             newImages.reduce(
@@ -380,7 +380,7 @@ export function ProductImagesField({
       )}
 
       {processing && (
-        <p className="text-xs font-medium text-[#7f512f]" aria-live="polite">
+        <p className="text-xs font-medium text-walnut" aria-live="polite">
           ფოტოების ოპტიმიზაცია მიმდინარეობს...
         </p>
       )}
@@ -388,7 +388,7 @@ export function ProductImagesField({
       {error && (
         <p
           id="product-images-error"
-          className="text-xs font-medium text-[#c62828]"
+          className="text-xs font-medium text-destructive"
         >
           {error}
         </p>

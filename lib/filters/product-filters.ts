@@ -43,6 +43,40 @@ export function buildProductFilterSchema({
       primary: true,
     },
     {
+      kind: "sort",
+      param: "sort",
+      label: "დალაგება",
+      // The first entry is the default when `?sort=` is absent or unrecognised, so it must
+      // stay the newest-first order the dashboard has always used.
+      options: [
+        {
+          value: "newest",
+          label: "ახალი ჯერ",
+          column: "created_at",
+          ascending: false,
+        },
+        {
+          value: "oldest",
+          label: "ძველი ჯერ",
+          column: "created_at",
+          ascending: true,
+        },
+        {
+          value: "price-desc",
+          label: "ძვირი ჯერ",
+          column: "price",
+          ascending: false,
+        },
+        {
+          value: "price-asc",
+          label: "იაფი ჯერ",
+          column: "price",
+          ascending: true,
+        },
+        { value: "name", label: "სახელით", column: "name", ascending: true },
+      ],
+    },
+    {
       kind: "multi",
       param: "status",
       label: "სტატუსი",

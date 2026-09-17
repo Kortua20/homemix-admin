@@ -78,7 +78,7 @@ export default async function EditProductPage({
     <section className="mx-auto w-full max-w-5xl px-5 pb-32 pt-5 lg:px-8 lg:pb-16 lg:pt-12">
       <Link
         href={`/product/${product.slug}`}
-        className="inline-flex items-center gap-2 text-sm font-semibold text-[#605e5b] transition-colors hover:text-[#7f512f]"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-quiet-ink transition-colors hover:text-walnut"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
         პროდუქტის დეტალებზე დაბრუნება
@@ -88,7 +88,7 @@ export default async function EditProductPage({
         <h1 className="text-3xl font-bold tracking-[-0.02em] lg:text-5xl">
           პროდუქტის რედაქტირება
         </h1>
-        <p className="mt-2 text-sm leading-6 text-[#605e5b] lg:text-base">
+        <p className="mt-2 text-sm leading-6 text-quiet-ink lg:text-base">
           განაახლეთ პროდუქტის ინფორმაცია, დაამატეთ ახალი ფოტოები ან წაშალეთ
           არსებული.
         </p>
@@ -98,14 +98,14 @@ export default async function EditProductPage({
         <div className="mt-7 rounded-3xl bg-white px-6 py-14 text-center shadow-[0_16px_30px_rgba(0,0,0,0.04)]">
           <AlertCircle
             aria-hidden="true"
-            className="mx-auto size-9 text-[#c62828]"
+            className="mx-auto size-9 text-destructive"
           />
           <h2 className="mt-4 text-xl font-bold">
             {categoriesResult.error
               ? "კატალოგი ვერ ჩაიტვირთა"
               : "მდგომარეობის სია ვერ ჩაიტვირთა"}
           </h2>
-          <p className="mt-2 text-sm text-[#605e5b]">
+          <p className="mt-2 text-sm text-quiet-ink">
             რედაქტირებისთვის განაახლეთ გვერდი და კიდევ სცადეთ.
           </p>
         </div>

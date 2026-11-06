@@ -440,6 +440,7 @@ export type Database = {
           dimension_note: string | null
           height_cm: number | null
           id: string
+          length_cm: number | null
           listing_kind: string
           name: string
           price: number
@@ -463,6 +464,7 @@ export type Database = {
           dimension_note?: string | null
           height_cm?: number | null
           id?: string
+          length_cm?: number | null
           listing_kind?: string
           name: string
           price: number
@@ -486,6 +488,7 @@ export type Database = {
           dimension_note?: string | null
           height_cm?: number | null
           id?: string
+          length_cm?: number | null
           listing_kind?: string
           name?: string
           price?: number

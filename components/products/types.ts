@@ -107,6 +107,7 @@ export type Product = {
 
 export type ProductDimensions = {
   widthCm: number | null;
+  lengthCm: number | null;
   depthCm: number | null;
   heightCm: number | null;
   seatHeightCm: number | null;

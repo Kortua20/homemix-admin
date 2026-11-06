@@ -569,7 +569,7 @@ export function ProductForm({
                 max="2000"
                 step="0.1"
                 defaultValue={product?.dimensions.widthCm ?? ""}
-                // `dimensions` is one error covering five inputs, and the server does not
+                // `dimensions` is one error covering six inputs, and the server does not
                 // say which one is bad. Marking the first is what the summary links to, so
                 // the person lands inside the group rather than nowhere.
                 aria-invalid={Boolean(state.fieldErrors?.dimensions)}
@@ -578,6 +578,19 @@ export function ProductForm({
                     ? "product-dimensions-error"
                     : undefined
                 }
+                className="h-12 border-clay-border bg-white"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="product-length">სიგრძე (სმ)</Label>
+              <Input
+                id="product-length"
+                name="lengthCm"
+                type="number"
+                min="0.1"
+                max="2000"
+                step="0.1"
+                defaultValue={product?.dimensions.lengthCm ?? ""}
                 className="h-12 border-clay-border bg-white"
               />
             </div>

@@ -73,6 +73,7 @@ type ProductWriteValues = {
   condition_summary: string | null;
   stock_quantity: number | null;
   width_cm: number | null;
+  length_cm: number | null;
   depth_cm: number | null;
   height_cm: number | null;
   seat_height_cm: number | null;
@@ -202,6 +203,7 @@ function readProductFields(formData: FormData) {
 
   // Dimensions apply to both listing kinds, so they sit outside the isUsed branch.
   const widthCm = readOptionalMeasurement(formData.get("widthCm"));
+  const lengthCm = readOptionalMeasurement(formData.get("lengthCm"));
   const depthCm = readOptionalMeasurement(formData.get("depthCm"));
   const heightCm = readOptionalMeasurement(formData.get("heightCm"));
   const seatHeightCm = readOptionalMeasurement(formData.get("seatHeightCm"));
@@ -209,7 +211,7 @@ function readProductFields(formData: FormData) {
   const dimensionNote = String(formData.get("dimensionNote") ?? "").trim();
 
   if (
-    [widthCm, depthCm, heightCm, seatHeightCm, weightKg].some(
+    [widthCm, lengthCm, depthCm, heightCm, seatHeightCm, weightKg].some(
       (value) => value === undefined,
     )
   ) {
@@ -233,6 +235,7 @@ function readProductFields(formData: FormData) {
     condition_summary: isUsed ? conditionSummary : null,
     stock_quantity: isUsed ? null : stock,
     width_cm: widthCm ?? null,
+    length_cm: lengthCm ?? null,
     depth_cm: depthCm ?? null,
     height_cm: heightCm ?? null,
     seat_height_cm: seatHeightCm ?? null,

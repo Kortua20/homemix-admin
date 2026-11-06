@@ -196,6 +196,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </section>
 
           {product.dimensions.widthCm !== null ||
+          product.dimensions.lengthCm !== null ||
           product.dimensions.depthCm !== null ||
           product.dimensions.heightCm !== null ||
           product.dimensions.seatHeightCm !== null ||
@@ -212,6 +213,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 {(
                   [
                     ["სიგანე", product.dimensions.widthCm, "სმ"],
+                    ["სიგრძე", product.dimensions.lengthCm, "სმ"],
                     ["სიღრმე", product.dimensions.depthCm, "სმ"],
                     ["სიმაღლე", product.dimensions.heightCm, "სმ"],
                     ["ჯდომის სიმაღლე", product.dimensions.seatHeightCm, "სმ"],

@@ -35,6 +35,7 @@ export const productSelect = `
   condition_summary,
   stock_quantity,
   width_cm,
+  length_cm,
   depth_cm,
   height_cm,
   seat_height_cm,
@@ -436,6 +437,7 @@ export function normalizeProduct(row: ProductQueryRow): Product | null {
     // Number(null) is 0, so each field is guarded: a missing measurement must stay null.
     dimensions: {
       widthCm: row.width_cm === null ? null : Number(row.width_cm),
+      lengthCm: row.length_cm === null ? null : Number(row.length_cm),
       depthCm: row.depth_cm === null ? null : Number(row.depth_cm),
       heightCm: row.height_cm === null ? null : Number(row.height_cm),
       seatHeightCm:

@@ -101,6 +101,32 @@ export type Database = {
           },
         ]
       }
+      category_slug_redirects: {
+        Row: {
+          category_id: string
+          created_at: string
+          old_slug: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          old_slug: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          old_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_slug_redirects_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colours: {
         Row: {
           code: string
@@ -398,6 +424,32 @@ export type Database = {
           },
         ]
       }
+      product_slug_redirects: {
+        Row: {
+          created_at: string
+          old_slug: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          old_slug: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          old_slug?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_slug_redirects_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_styles: {
         Row: {
           product_id: string
@@ -425,6 +477,32 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "styles"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      product_view_counts: {
+        Row: {
+          product_id: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          product_id: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          product_id?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_view_counts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -544,6 +622,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      record_product_view: {
+        Args: {
+          p_ip_hash: string
+          p_product_id: string
+          p_secret: string
+          p_visitor_hash: string
+        }
+        Returns: boolean
+      }
       release_contact_email_quota: {
         Args: { p_client_id: string; p_secret: string }
         Returns: undefined

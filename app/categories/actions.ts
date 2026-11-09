@@ -43,7 +43,7 @@ function readCategoryFields(formData: FormData) {
   if (slug.length < 2 || slug.length > 80) {
     fieldErrors.slug = "სლაგი უნდა შეიცავდეს 2-დან 80 სიმბოლომდე.";
   } else if (!isValidSlug(slug)) {
-    fieldErrors.slug = "გამოიყენეთ ქართული ასოები, ციფრები და დეფისი.";
+    fieldErrors.slug = "გამოიყენეთ ლათინური ასოები, ციფრები და დეფისი.";
   }
 
   if (description.length > 5000) {

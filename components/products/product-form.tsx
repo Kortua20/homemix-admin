@@ -40,7 +40,7 @@ import {
   LISTING_KIND_LABELS,
   PRODUCT_STATUS_LABELS,
 } from "@/lib/product-data";
-import { createSlug } from "@/lib/slug";
+import { createSlug, createSlugWhileTyping } from "@/lib/slug";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
 
 const initialProductActionState: ProductActionState = {
@@ -173,7 +173,7 @@ export function ProductForm({
 
   function handleSlugChange(event: React.ChangeEvent<HTMLInputElement>) {
     setSlugEdited(true);
-    setSlug(createSlug(event.target.value));
+    setSlug(createSlugWhileTyping(event.target.value));
   }
 
   return (
@@ -236,11 +236,12 @@ export function ProductForm({
             name="slug"
             value={slug}
             onChange={handleSlugChange}
-            placeholder="მუხის-სასადილო-მაგიდა"
+            onBlur={() => setSlug(createSlug)}
+            placeholder="mukhis-sasadilo-magida"
             required
             minLength={2}
             maxLength={160}
-            pattern="[ა-ჰa-z0-9]+(?:-[ა-ჰa-z0-9]+)*"
+            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
             aria-invalid={Boolean(state.fieldErrors?.slug)}
             aria-describedby={
               state.fieldErrors?.slug

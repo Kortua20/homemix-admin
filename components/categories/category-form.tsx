@@ -14,7 +14,7 @@ import type { Category } from "@/components/categories/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createSlug } from "@/lib/slug";
+import { createSlug, createSlugWhileTyping } from "@/lib/slug";
 
 const initialCategoryActionState: CategoryActionState = {
   status: "idle",
@@ -49,7 +49,7 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
 
   function handleSlugChange(event: React.ChangeEvent<HTMLInputElement>) {
     setSlugEdited(true);
-    setSlug(createSlug(event.target.value));
+    setSlug(createSlugWhileTyping(event.target.value));
   }
 
   return (
@@ -100,11 +100,12 @@ export function CategoryForm({ mode, category }: CategoryFormProps) {
             name="slug"
             value={slug}
             onChange={handleSlugChange}
-            placeholder="მაგიდები"
+            onBlur={() => setSlug(createSlug)}
+            placeholder="magidebi"
             required
             minLength={2}
             maxLength={80}
-            pattern="[ა-ჰa-z0-9]+(?:-[ა-ჰa-z0-9]+)*"
+            pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
             aria-invalid={Boolean(state.fieldErrors?.slug)}
             aria-describedby={
               state.fieldErrors?.slug

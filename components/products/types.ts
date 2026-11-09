@@ -105,6 +105,37 @@ export type Product = {
   updatedAt: string;
 };
 
+// The three attribute vocabularies, keyed the same way in the form's selection state and in
+// an AI suggestion so the two can be merged without a mapping table.
+export type AttributeKind = "materials" | "colours" | "styles";
+export type AttributeSelection = Record<AttributeKind, string[]>;
+
+export type AiConfidence = "high" | "medium" | "low";
+
+export type AiAttributeSuggestion = {
+  code: string;
+  confidence: AiConfidence;
+};
+
+// `basis` is what separates "the photo shows glass" from "this looks like oak". Wood species,
+// solid wood vs. veneer and real vs. faux leather cannot be confirmed from a photo, so the
+// model is told to mark those `inferred` — and the form never ticks an inferred material.
+export type AiMaterialSuggestion = AiAttributeSuggestion & {
+  basis: "visible" | "inferred";
+};
+
+// What suggestProductDetails returns after server-side validation. Every code is known to
+// exist in the vocabulary tables; nothing here has been written anywhere.
+export type ProductAiSuggestion = {
+  isFurniture: boolean;
+  sameItem: boolean;
+  colours: AiAttributeSuggestion[];
+  materials: AiMaterialSuggestion[];
+  styles: AiAttributeSuggestion[];
+  materialNoteKa: string;
+  descriptionKa: string;
+};
+
 export type ProductDimensions = {
   widthCm: number | null;
   lengthCm: number | null;

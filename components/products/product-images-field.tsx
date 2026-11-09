@@ -339,7 +339,13 @@ export function ProductImagesField({
   }, [anchorableKey]);
 
   return (
-    <div className="grid gap-3 lg:col-span-2">
+    // tabIndex -1 so in-form links ("add photos first") can move focus here; the next Tab
+    // then lands on the picker itself.
+    <div
+      id="product-photos"
+      tabIndex={-1}
+      className="grid gap-3 outline-none lg:col-span-2"
+    >
       <div className="flex items-center justify-between gap-4">
         <Label htmlFor="product-images">ფოტოები</Label>
         <span className="text-xs font-medium text-soft-brown">
@@ -421,6 +427,23 @@ export function ProductImagesField({
           JPG, PNG, WebP ან iPhone ფოტო · დიდი ფოტოები ავტომატურად შემცირდება
         </span>
       </label>
+
+      {/* Shown only while there is nothing to look at, and gone after the first photo —
+          the moment the advice can still change what gets shot. The same three things make
+          a better storefront photo and a more accurate AI suggestion; warm lamp light is
+          the most common cause of a wrong colour from either. */}
+      {totalVisibleImages === 0 ? (
+        <div className="rounded-xl border border-hairline px-4 py-3">
+          <p className="text-xs font-semibold text-ink">რჩევები ფოტოებისთვის</p>
+          <ul className="mt-1.5 grid list-disc gap-1 pl-4 text-xs leading-5 text-quiet-ink">
+            <li>ნივთი მთლიანად უნდა ჩანდეს კადრში, მშვიდ ფონზე.</li>
+            <li>
+              უმჯობესია დღის სინათლე — ნათურის თბილი შუქი ფერებს ცვლის.
+            </li>
+            <li>დაამატეთ ერთი ახლო კადრი მასალის ან ქსოვილის.</li>
+          </ul>
+        </div>
+      ) : null}
       <input
         ref={inputRef}
         id="product-images"

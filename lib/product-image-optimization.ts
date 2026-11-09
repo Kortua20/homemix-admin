@@ -1,5 +1,8 @@
+import { AI_ANALYSIS_IMAGE_DIMENSION } from "@/lib/product-image-constraints";
+
 const TARGET_IMAGE_SIZE = 425 * 1024;
 const MAX_IMAGE_DIMENSION = 1920;
+const ANALYSIS_IMAGE_QUALITY = 0.8;
 
 type DecodedImage = {
   height: number;
@@ -8,7 +11,7 @@ type DecodedImage = {
   close: () => void;
 };
 
-function loadHtmlImage(file: File): Promise<DecodedImage> {
+function loadHtmlImage(file: Blob): Promise<DecodedImage> {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
     const image = new Image();
@@ -29,7 +32,7 @@ function loadHtmlImage(file: File): Promise<DecodedImage> {
   });
 }
 
-async function decodeImage(file: File): Promise<DecodedImage> {
+async function decodeImage(file: Blob): Promise<DecodedImage> {
   if (typeof createImageBitmap === "function") {
     try {
       const bitmap = await createImageBitmap(file, {
@@ -147,6 +150,50 @@ export async function optimizeProductImage(file: File): Promise<File> {
         lastModified: file.lastModified,
       },
     );
+  } finally {
+    image.close();
+  }
+}
+
+// The copy sent to the AI, not the one stored. Always re-encoded, never passed through like
+// small files are above: drawing to a canvas is what strips EXIF — including a phone's GPS
+// position — before the photo leaves for a third party.
+//
+// JPEG rather than WebP because it is the format every vision model accepts without
+// question, and a single fixed attempt because the size target here is loose (1MB cap for a
+// ~150KB image); the retry ladder above exists for a much tighter storage budget.
+export async function prepareImageForAnalysis(source: Blob): Promise<Blob> {
+  const image = await decodeImage(source);
+
+  try {
+    const scale = Math.min(
+      1,
+      AI_ANALYSIS_IMAGE_DIMENSION / Math.max(image.width, image.height),
+    );
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("IMAGE_CANVAS_UNAVAILABLE");
+    }
+
+    // JPEG has no alpha channel, so a transparent PNG would otherwise come out black — and
+    // the model would then report a black product.
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image.source, 0, 0, canvas.width, canvas.height);
+
+    const blob = await canvasToBlob(canvas, "image/jpeg", ANALYSIS_IMAGE_QUALITY);
+    canvas.width = 1;
+    canvas.height = 1;
+
+    if (!blob) {
+      throw new Error("IMAGE_ENCODE_FAILED");
+    }
+
+    return blob;
   } finally {
     image.close();
   }

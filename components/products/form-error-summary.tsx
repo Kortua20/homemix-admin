@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { AlertCircle } from "lucide-react";
 
+import { JumpLink } from "@/components/products/jump-link";
+
 // Maps each server fieldError key to the input it belongs to, in the order the fields
 // appear on screen. Object key order is not reliable for this — the server builds
 // fieldErrors in validation order, which is not visual order — so the sequence is declared
@@ -69,21 +71,12 @@ export function FormErrorSummary({
       <ul className="mt-2 grid gap-1 pl-6">
         {listed.map((field) => (
           <li key={field.key}>
-            {/* A real anchor, not a button: it works before hydration, and the browser's
-                own focus handling is more reliable than scrollIntoView on a form this
-                tall. */}
-            <a
-              href={`#${field.id}`}
+            <JumpLink
+              targetId={field.id}
               className="text-sm text-destructive-ink underline underline-offset-2 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive-ink"
-              onClick={(event) => {
-                event.preventDefault();
-                const target = document.getElementById(field.id);
-                target?.scrollIntoView({ block: "center", behavior: "smooth" });
-                target?.focus({ preventScroll: true });
-              }}
             >
               {field.label}
-            </a>
+            </JumpLink>
             <span className="text-sm text-destructive-ink"> — {field.message}</span>
           </li>
         ))}

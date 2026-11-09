@@ -9,6 +9,8 @@ import {
   updateProduct,
   type ProductActionState,
 } from "@/app/product/actions";
+import { JumpLink } from "@/components/products/jump-link";
+import { ProductAiAssist } from "@/components/products/product-ai-assist";
 import { ProductAttributeFields } from "@/components/products/product-attribute-fields";
 import {
   ProductConditionFields,
@@ -24,10 +26,13 @@ import {
 } from "@/components/products/form-error-summary";
 import { ProductImagesField } from "@/components/products/product-images-field";
 import type {
+  AttributeKind,
+  AttributeSelection,
   ConditionAspect,
   ConditionGrade,
   ListingKind,
   Product,
+  ProductAiSuggestion,
   ProductAttribute,
   ProductCategory,
   ProductStatus,
@@ -56,6 +61,30 @@ const STATUS_OPTIONS: ProductStatus[] = [
   "sold",
   "archived",
 ];
+
+// What an AI suggestion ticks without asking. Only what photos make near-certain: colours
+// unless the model itself was unsure, materials only when visibly unambiguous, styles only
+// when clear. Everything else stays marked-but-unticked on its chip for the admin to accept.
+function getAutoApplyCodes(suggestion: ProductAiSuggestion): AttributeSelection {
+  return {
+    colours: suggestion.colours
+      .filter((colour) => colour.confidence !== "low")
+      .map((colour) => colour.code),
+    materials: suggestion.materials
+      .filter((material) => material.basis === "visible" && material.confidence === "high")
+      .map((material) => material.code),
+    styles: suggestion.styles
+      .filter((style) => style.confidence === "high")
+      .map((style) => style.code),
+  };
+}
+
+function mergeCodes(current: string[], additions: string[]) {
+  return [...new Set([...current, ...additions])];
+}
+
+const NUDGE_LINK_CLASS =
+  "font-semibold text-walnut underline underline-offset-2 hover:no-underline";
 
 type ProductFormProps = {
   mode: "create" | "edit";
@@ -87,6 +116,18 @@ export function ProductForm({
   const [slug, setSlug] = useState(product?.slug ?? "");
   const [slugEdited, setSlugEdited] = useState(false);
   const [imagesProcessing, setImagesProcessing] = useState(false);
+  // Controlled, unlike most of this form, because an AI suggestion writes into them from
+  // outside the field. See handleAiSuggestion for the rules on when it may.
+  const [description, setDescription] = useState(product?.description ?? "");
+  const [attributeSelection, setAttributeSelection] = useState<AttributeSelection>(
+    () => ({
+      materials: product?.materialCodes ?? [],
+      colours: product?.colourCodes ?? [],
+      styles: product?.styleCodes ?? [],
+    }),
+  );
+  const [aiSuggestion, setAiSuggestion] = useState<ProductAiSuggestion | null>(null);
+  const [aiAnalysing, setAiAnalysing] = useState(false);
   // Reported upward by ProductImagesField so a flaw can be anchored to a photo that has
   // not been uploaded yet — the id was minted client-side.
   const [photos, setPhotos] = useState<AnchorablePhoto[]>(() =>
@@ -139,6 +180,7 @@ export function ProductForm({
   // list so its links read top-to-bottom the way the form does, and each `id` is the real
   // input id so the anchor can focus it.
   const errorFields: FieldDescriptor[] = [
+    { key: "images", id: "product-images", label: "ფოტოები" },
     { key: "name", id: "product-name", label: "პროდუქტის დასახელება" },
     { key: "slug", id: "product-slug", label: "სლაგი" },
     { key: "categoryId", id: "product-category", label: "კატალოგი" },
@@ -156,10 +198,9 @@ export function ProductForm({
       id: "product-condition-summary",
       label: "მდგომარეობის აღწერა",
     },
-    { key: "stockQuantity", id: "product-stock", label: "მარაგი" },
-    { key: "description", id: "product-description", label: "აღწერა" },
+    { key: "stockQuantity", id: "product-stock-quantity", label: "მარაგი" },
     { key: "dimensions", id: "product-width", label: "ზომები" },
-    { key: "images", id: "product-images", label: "ფოტოები" },
+    { key: "description", id: "product-description", label: "აღწერა" },
   ];
 
   function handleNameChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -175,6 +216,75 @@ export function ProductForm({
     setSlugEdited(true);
     setSlug(createSlugWhileTyping(event.target.value));
   }
+
+  function toggleAttribute(kind: AttributeKind, code: string) {
+    setAttributeSelection((current) => ({
+      ...current,
+      [kind]: current[kind].includes(code)
+        ? current[kind].filter((selectedCode) => selectedCode !== code)
+        : [...current[kind], code],
+    }));
+  }
+
+  // Merge rules, so a suggestion never fights what the admin has already done:
+  //   - It only adds. Nothing the admin ticked is ever unticked.
+  //   - The description is filled only if the field is empty WHEN THE ANSWER ARRIVES — read
+  //     through the updater, not from this closure, which was captured when the button was
+  //     clicked and would miss anything typed during the request.
+  //   - Photos that look like different items, or like no furniture at all, fill nothing;
+  //     the suggestions are still shown and can be accepted by hand.
+  function handleAiSuggestion(suggestion: ProductAiSuggestion) {
+    setAiSuggestion(suggestion);
+
+    if (!suggestion.isFurniture || !suggestion.sameItem) {
+      return;
+    }
+
+    if (suggestion.descriptionKa) {
+      setDescription((current) =>
+        current.trim() === "" ? suggestion.descriptionKa : current,
+      );
+    }
+
+    const additions = getAutoApplyCodes(suggestion);
+    setAttributeSelection((current) => ({
+      materials: mergeCodes(current.materials, additions.materials),
+      colours: mergeCodes(current.colours, additions.colours),
+      styles: mergeCodes(current.styles, additions.styles),
+    }));
+
+    // State updates do not fire the form's input events, and AI-filled values are unsaved
+    // work like any other.
+    setDirty(true);
+  }
+
+  function handleAiDescriptionChange(nextDescription: string) {
+    setDescription(nextDescription);
+    setDirty(true);
+  }
+
+  // Derived: the marker shows while the field still holds exactly the AI's text, and
+  // disappears on the first edit without anything having to clear it.
+  const descriptionFromAi =
+    aiSuggestion !== null &&
+    description !== "" &&
+    description === aiSuggestion.descriptionKa;
+  // Catches the admin who skipped past the photos and is about to write the description by
+  // hand — the one case where the AI could have saved real effort. Only while the field is
+  // empty and nothing has been analysed yet, so it never talks over work already done.
+  const descriptionNudge =
+    mode === "create" && description.trim() === "" && aiSuggestion === null
+      ? photos.length === 0
+        ? "add-photos"
+        : "analyse"
+      : null;
+  const aiSuggestedCodes: AttributeSelection | undefined = aiSuggestion
+    ? {
+        materials: aiSuggestion.materials.map((material) => material.code),
+        colours: aiSuggestion.colours.map((colour) => colour.code),
+        styles: aiSuggestion.styles.map((style) => style.code),
+      }
+    : undefined;
 
   return (
     <form
@@ -200,6 +310,33 @@ export function ProductForm({
       )}
 
       <div className="grid gap-5 lg:grid-cols-2">
+        {/* Photos lead, on both pages. Listings are photographed before they are written up,
+            and on a create the AI panel below turns those photos into the description and
+            attributes — so starting here is the path that saves the most typing. The edit
+            page keeps the same order so the form never rearranges itself between the two. */}
+        <ProductImagesField
+          existingImages={product?.images}
+          onProcessingChange={setImagesProcessing}
+          onPhotosChange={setPhotos}
+          serverError={state.fieldErrors?.images}
+        />
+
+        {/* Create only for now: on an edit the fields are already filled, so the merge rules
+            would leave almost everything untouched. The component itself handles saved
+            photos, so enabling it there is a one-line change once that is wanted. */}
+        {mode === "create" ? (
+          <ProductAiAssist
+            photos={photos}
+            disabled={pending || imagesProcessing}
+            suggestion={aiSuggestion}
+            onSuggestion={handleAiSuggestion}
+            onAnalysingChange={setAiAnalysing}
+            description={description}
+            onDescriptionChange={handleAiDescriptionChange}
+            selection={attributeSelection}
+          />
+        ) : null}
+
         <div className="grid gap-2 lg:col-span-2">
           <Label htmlFor="product-name">
             პროდუქტის დასახელება
@@ -214,7 +351,8 @@ export function ProductForm({
             required
             minLength={2}
             maxLength={160}
-            autoFocus
+            // No autoFocus: photos now come first, and jumping focus past them to the name
+            // would contradict the order the form is laid out in.
             aria-invalid={Boolean(state.fieldErrors?.name)}
             aria-describedby={
               state.fieldErrors?.name ? "product-name-error" : undefined
@@ -672,7 +810,8 @@ export function ProductForm({
           <textarea
             id="product-description"
             name="description"
-            defaultValue={product?.description}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
             placeholder="მოკლედ აღწერეთ პროდუქტი..."
             rows={8}
             maxLength={5000}
@@ -691,26 +830,37 @@ export function ProductForm({
               id="product-description-help"
               className="text-xs leading-5 text-quiet-ink"
             >
-              აღწერა სურვილისამებრ შეგიძლიათ დატოვოთ ცარიელი.
+              {descriptionFromAi ? (
+                "AI-ს მიერ შევსებული — შენახვამდე გადაამოწმეთ და შეასწორეთ."
+              ) : descriptionNudge === "add-photos" ? (
+                <>
+                  დაამატეთ ფოტოები და AI შეადგენს აღწერის პროექტს.{" "}
+                  <JumpLink targetId="product-photos" className={NUDGE_LINK_CLASS}>
+                    ფოტოებზე გადასვლა
+                  </JumpLink>
+                </>
+              ) : descriptionNudge === "analyse" ? (
+                <>
+                  ფოტოები დამატებულია — AI-ს შეუძლია აღწერის შედგენა.{" "}
+                  <JumpLink targetId="product-ai" className={NUDGE_LINK_CLASS}>
+                    ანალიზზე გადასვლა
+                  </JumpLink>
+                </>
+              ) : (
+                "აღწერა სურვილისამებრ შეგიძლიათ დატოვოთ ცარიელი."
+              )}
             </p>
           )}
         </div>
-
-        <ProductImagesField
-          existingImages={product?.images}
-          onProcessingChange={setImagesProcessing}
-          onPhotosChange={setPhotos}
-          serverError={state.fieldErrors?.images}
-        />
 
         {/* Applies to both listing kinds — a new sofa has a material and a colour too. */}
         <ProductAttributeFields
           materials={materials}
           colours={colours}
           styles={styles}
-          selectedMaterials={product?.materialCodes}
-          selectedColours={product?.colourCodes}
-          selectedStyles={product?.styleCodes}
+          selection={attributeSelection}
+          suggested={aiSuggestedCodes}
+          onToggle={toggleAttribute}
           serverError={state.fieldErrors?.attributes}
         />
 
@@ -752,7 +902,11 @@ export function ProductForm({
         </Link>
         <Button
           type="submit"
-          disabled={pending || imagesProcessing || categories.length === 0}
+          // Disabled during AI analysis too: Server Actions run one at a time per client, so
+          // a Save pressed now would sit behind the analysis request rather than run.
+          disabled={
+            pending || imagesProcessing || aiAnalysing || categories.length === 0
+          }
           className="min-w-40"
         >
           {(pending || imagesProcessing) && (

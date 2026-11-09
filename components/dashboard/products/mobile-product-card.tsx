@@ -35,7 +35,9 @@ export function MobileProductCard({ product }: MobileProductCardProps) {
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <h2 className="line-clamp-2 text-[15px] font-semibold leading-5 text-ink">
+          {/* wrap-break-word: a Georgian name that is one long word would otherwise be cut
+              off sideways by line-clamp's overflow:hidden instead of wrapping. */}
+          <h2 className="line-clamp-2 text-[15px] font-semibold leading-5 wrap-break-word text-ink">
             {product.name}
           </h2>
           <p className="mt-0.5 truncate text-[13px] leading-4 text-quiet-ink">

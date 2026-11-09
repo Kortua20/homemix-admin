@@ -34,16 +34,25 @@ export function DesktopProductCard({ product }: DesktopProductCardProps) {
           )}
         </div>
 
-        <div className="flex min-h-28 flex-col gap-1 py-4">
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="line-clamp-2 text-2xl font-semibold leading-[1.3] text-ink transition-colors group-hover:text-walnut">
-              {product.name}
-            </h2>
+        {/* The title gets the full card width, and the badge sits with the category below —
+            the same arrangement as the mobile card. Sharing a row with the badge (which never
+            shrinks) left long Georgian names a sliver of space, and since a single word
+            cannot wrap, line-clamp's overflow:hidden cut it off sideways mid-word.
+            `wrap-break-word` is the fallback for a word longer than even the full width;
+            `title` shows the whole name on hover when two lines are not enough. */}
+        <div className="flex min-h-28 flex-col gap-2 py-4">
+          <h2
+            title={product.name}
+            className="line-clamp-2 text-2xl font-semibold leading-[1.3] wrap-break-word text-ink transition-colors group-hover:text-walnut"
+          >
+            {product.name}
+          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 truncate text-sm font-semibold leading-5 text-quiet-ink">
+              {product.categoryName}
+            </p>
             <ProductStatusBadge status={product.status} />
           </div>
-          <p className="text-sm font-semibold leading-5 text-quiet-ink">
-            {product.categoryName}
-          </p>
         </div>
 
         <div className="border-t border-hairline py-4">

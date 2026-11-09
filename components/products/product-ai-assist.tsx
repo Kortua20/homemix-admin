@@ -36,6 +36,7 @@ type ProductAiAssistProps = {
   description: string;
   onDescriptionChange: (description: string) => void;
   selection: AttributeSelection;
+  categoryId: string;
 };
 
 const ATTRIBUTE_LABELS: [AttributeKind, string][] = [
@@ -55,8 +56,18 @@ function getResultSummary(
   suggestion: ProductAiSuggestion,
   selection: AttributeSelection,
   description: string,
+  categoryId: string,
 ) {
+  // In the order the fields appear in the form, top to bottom.
   const links: { key: string; label: string; targetId: string }[] = [];
+
+  if (suggestion.category && categoryId === suggestion.category.id) {
+    links.push({
+      key: "category",
+      label: "კატალოგი",
+      targetId: "product-category",
+    });
+  }
 
   if (suggestion.descriptionKa !== "" && description === suggestion.descriptionKa) {
     links.push({
@@ -118,6 +129,7 @@ export function ProductAiAssist({
   description,
   onDescriptionChange,
   selection,
+  categoryId,
 }: ProductAiAssistProps) {
   const [analysing, startAnalysis] = useTransition();
   const [error, setError] = useState("");
@@ -176,7 +188,7 @@ export function ProductAiAssist({
     suggestion.descriptionKa !== "" &&
     description !== suggestion.descriptionKa;
   const summary = suggestion
-    ? getResultSummary(suggestion, selection, description)
+    ? getResultSummary(suggestion, selection, description, categoryId)
     : null;
 
   return (

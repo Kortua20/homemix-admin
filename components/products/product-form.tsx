@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -119,6 +119,7 @@ export function ProductForm({
   // Controlled, unlike most of this form, because an AI suggestion writes into them from
   // outside the field. See handleAiSuggestion for the rules on when it may.
   const [description, setDescription] = useState(product?.description ?? "");
+  const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
   const [attributeSelection, setAttributeSelection] = useState<AttributeSelection>(
     () => ({
       materials: product?.materialCodes ?? [],
@@ -228,9 +229,11 @@ export function ProductForm({
 
   // Merge rules, so a suggestion never fights what the admin has already done:
   //   - It only adds. Nothing the admin ticked is ever unticked.
-  //   - The description is filled only if the field is empty WHEN THE ANSWER ARRIVES — read
-  //     through the updater, not from this closure, which was captured when the button was
-  //     clicked and would miss anything typed during the request.
+  //   - The description and category are filled only if empty WHEN THE ANSWER ARRIVES —
+  //     read through the updater, not from this closure, which was captured when the button
+  //     was clicked and would miss anything chosen or typed during the request.
+  //   - A low-confidence category is offered under the select, never chosen for the admin.
+  //   - Price, name, status and everything else the AI cannot see are never touched.
   //   - Photos that look like different items, or like no furniture at all, fill nothing;
   //     the suggestions are still shown and can be accepted by hand.
   function handleAiSuggestion(suggestion: ProductAiSuggestion) {
@@ -238,6 +241,11 @@ export function ProductForm({
 
     if (!suggestion.isFurniture || !suggestion.sameItem) {
       return;
+    }
+
+    const suggestedCategory = suggestion.category;
+    if (suggestedCategory && suggestedCategory.confidence !== "low") {
+      setCategoryId((current) => (current === "" ? suggestedCategory.id : current));
     }
 
     if (suggestion.descriptionKa) {
@@ -263,6 +271,19 @@ export function ProductForm({
     setDirty(true);
   }
 
+  function handleChooseSuggestedCategory() {
+    if (!aiSuggestion?.category) return;
+    setCategoryId(aiSuggestion.category.id);
+    setDirty(true);
+  }
+
+  // Same derivation as the description marker below: "from AI" while the select still holds
+  // the suggested category, an offer while it holds something else.
+  const suggestedCategory = aiSuggestion?.category
+    ? categories.find((category) => category.id === aiSuggestion.category?.id)
+    : undefined;
+  const categoryFromAi = suggestedCategory !== undefined && categoryId === suggestedCategory.id;
+
   // Derived: the marker shows while the field still holds exactly the AI's text, and
   // disappears on the first edit without anything having to clear it.
   const descriptionFromAi =
@@ -286,10 +307,24 @@ export function ProductForm({
       }
     : undefined;
 
+  // Dispatched by hand rather than through <form action={formAction}>. React resets every
+  // uncontrolled field before running a form action, and it does so even when the server
+  // comes back with validation errors — so a rejected save used to blank the price,
+  // category, status, condition and dimensions while the fields held in state survived,
+  // which looked like the AI had changed them. Calling the action ourselves skips that
+  // reset; the edits stay on screen next to the errors, as the dirty-state comment above
+  // always assumed. Native `required`/pattern validation still runs first, because the
+  // submit event only fires once the browser's own checks pass.
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitToken((token) => token + 1);
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  }
+
   return (
     <form
-      action={formAction}
-      onSubmit={() => setSubmitToken((token) => token + 1)}
+      onSubmit={handleSubmit}
       // Capture any edit anywhere in the form, including the image and flaw fields that own
       // their own inputs. `onInput` bubbles from every native control, which `onChange`
       // alone would not give us for the uncontrolled ones.
@@ -334,6 +369,7 @@ export function ProductForm({
             description={description}
             onDescriptionChange={handleAiDescriptionChange}
             selection={attributeSelection}
+            categoryId={categoryId}
           />
         ) : null}
 
@@ -408,13 +444,16 @@ export function ProductForm({
           <select
             id="product-category"
             name="categoryId"
-            defaultValue={product?.categoryId ?? ""}
+            value={categoryId}
+            onChange={(event) => setCategoryId(event.target.value)}
             required
             aria-invalid={Boolean(state.fieldErrors?.categoryId)}
             aria-describedby={
               state.fieldErrors?.categoryId
                 ? "product-category-error"
-                : undefined
+                : suggestedCategory
+                  ? "product-category-help"
+                  : undefined
             }
             className="h-12 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30 aria-invalid:border-destructive aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-destructive/20"
           >
@@ -427,9 +466,24 @@ export function ProductForm({
               </option>
             ))}
           </select>
-          {state.fieldErrors?.categoryId && (
+          {state.fieldErrors?.categoryId ? (
             <FieldError id="product-category-error">{state.fieldErrors.categoryId}</FieldError>
-          )}
+          ) : categoryFromAi ? (
+            <p id="product-category-help" className="text-xs leading-5 text-quiet-ink">
+              AI-ს შემოთავაზება — შენახვამდე გადაამოწმეთ.
+            </p>
+          ) : suggestedCategory ? (
+            <p id="product-category-help" className="text-xs leading-5 text-quiet-ink">
+              AI გვთავაზობს: {suggestedCategory.name}.{" "}
+              <button
+                type="button"
+                onClick={handleChooseSuggestedCategory}
+                className={NUDGE_LINK_CLASS}
+              >
+                არჩევა
+              </button>
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-2">

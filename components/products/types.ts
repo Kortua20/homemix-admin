@@ -129,6 +129,9 @@ export type AiMaterialSuggestion = AiAttributeSuggestion & {
 export type ProductAiSuggestion = {
   isFurniture: boolean;
   sameItem: boolean;
+  // Already resolved from the model's slug to the category id the form submits. Null when
+  // no category fitted, or the photos were not furniture.
+  category: { id: string; confidence: AiConfidence } | null;
   colours: AiAttributeSuggestion[];
   materials: AiMaterialSuggestion[];
   styles: AiAttributeSuggestion[];

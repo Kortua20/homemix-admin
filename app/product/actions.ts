@@ -42,6 +42,7 @@ export type ProductActionState = {
     stockQuantity?: string;
     flaws?: string;
     dimensions?: string;
+    features?: string;
     attributes?: string;
   };
 };
@@ -79,7 +80,27 @@ type ProductWriteValues = {
   seat_height_cm: number | null;
   weight_kg: number | null;
   dimension_note: string | null;
+  is_foldable: boolean;
+  folding_mechanism: string | null;
+  unfolded_width_cm: number | null;
+  unfolded_length_cm: number | null;
+  unfolded_height_cm: number | null;
+  has_storage: boolean | null;
 };
+
+// Mechanism codes follow the same pattern as every vocabulary code
+// (folding_mechanisms_code_check). Checked here only to reject junk before the write; the
+// foreign key is the real authority on whether the code exists.
+const mechanismCodePattern = /^[a-z][a-z0-9_]{1,30}$/;
+
+// "yes" / "no" / "" from the storage radio group. Anything else — a hand-crafted submit —
+// is treated as "not specified" rather than guessed into a claim.
+function readStorage(raw: FormDataEntryValue | null) {
+  const value = String(raw ?? "");
+  if (value === "yes") return true;
+  if (value === "no") return false;
+  return null;
+}
 
 // An empty field means "not measured" and must write NULL, not 0 — the CHECK constraints
 // reject zero precisely so a blank cannot masquerade as a real measurement.
@@ -222,6 +243,27 @@ function readProductFields(formData: FormData) {
     fieldErrors.dimensions = "ზომების შენიშვნა არ უნდა აღემატებოდეს 500 სიმბოლოს.";
   }
 
+  // Folding. Built from the checkbox, like the condition half is built from listing_kind:
+  // when the product does not fold, the mechanism and unfolded size are written as NULL
+  // whatever the form sent, so products_folding_matches_foldable_check can never fire.
+  const isFoldable = formData.get("isFoldable") === "true";
+  const foldingMechanism = String(formData.get("foldingMechanism") ?? "").trim();
+  const unfoldedWidthCm = readOptionalMeasurement(formData.get("unfoldedWidthCm"));
+  const unfoldedLengthCm = readOptionalMeasurement(formData.get("unfoldedLengthCm"));
+  const unfoldedHeightCm = readOptionalMeasurement(formData.get("unfoldedHeightCm"));
+
+  if (isFoldable) {
+    if (foldingMechanism && !mechanismCodePattern.test(foldingMechanism)) {
+      fieldErrors.features = "აირჩიეთ გაშლის მექანიზმი სიიდან.";
+    } else if (
+      [unfoldedWidthCm, unfoldedLengthCm, unfoldedHeightCm].some(
+        (value) => value === undefined,
+      )
+    ) {
+      fieldErrors.features = "გაშლილი ზომები უნდა იყოს დადებითი რიცხვები.";
+    }
+  }
+
   const values: ProductWriteValues = {
     name,
     slug,
@@ -241,6 +283,14 @@ function readProductFields(formData: FormData) {
     seat_height_cm: seatHeightCm ?? null,
     weight_kg: weightKg ?? null,
     dimension_note: dimensionNote || null,
+    is_foldable: isFoldable,
+    folding_mechanism: isFoldable ? foldingMechanism || null : null,
+    unfolded_width_cm: isFoldable ? (unfoldedWidthCm ?? null) : null,
+    unfolded_length_cm: isFoldable ? (unfoldedLengthCm ?? null) : null,
+    unfolded_height_cm: isFoldable ? (unfoldedHeightCm ?? null) : null,
+    // Independent of folding: an ottoman bed with a lifting base has storage and no
+    // mechanism at all.
+    has_storage: readStorage(formData.get("hasStorage")),
   };
 
   return { values, fieldErrors };
@@ -598,6 +648,10 @@ function getDatabaseErrorMessage(code?: string, constraint?: string) {
     return "არჩეული სტილი აღარ არსებობს.";
   }
 
+  if (code === "23503" && constraint?.includes("folding")) {
+    return "არჩეული გაშლის მექანიზმი აღარ არსებობს.";
+  }
+
   if (code === "23503") {
     return "არჩეული კატალოგი აღარ არსებობს.";
   }
@@ -646,7 +700,9 @@ export async function createProduct(
   if (error) {
     return {
       status: "error",
-      message: getDatabaseErrorMessage(error.code),
+      // PostgREST errors carry no `constraint` field, but the message names the violated
+      // constraint — without it every 23503 here would claim the category is gone.
+      message: getDatabaseErrorMessage(error.code, error.message),
     };
   }
 
@@ -857,7 +913,8 @@ export async function updateProduct(
 
     return {
       status: "error",
-      message: getDatabaseErrorMessage(error.code),
+      // See the matching note in createProduct.
+      message: getDatabaseErrorMessage(error.code, error.message),
     };
   }
 

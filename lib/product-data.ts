@@ -41,6 +41,12 @@ export const productSelect = `
   seat_height_cm,
   weight_kg,
   dimension_note,
+  is_foldable,
+  folding_mechanism,
+  unfolded_width_cm,
+  unfolded_length_cm,
+  unfolded_height_cm,
+  has_storage,
   conditionGrade:condition_grades!products_condition_grade_fkey (
     code,
     sort_order,
@@ -445,6 +451,18 @@ export function normalizeProduct(row: ProductQueryRow): Product | null {
       weightKg: row.weight_kg === null ? null : Number(row.weight_kg),
       note: row.dimension_note,
     },
+    // Same Number(null) guard as the dimensions above.
+    folding: {
+      isFoldable: row.is_foldable,
+      mechanismCode: row.folding_mechanism,
+      unfoldedWidthCm:
+        row.unfolded_width_cm === null ? null : Number(row.unfolded_width_cm),
+      unfoldedLengthCm:
+        row.unfolded_length_cm === null ? null : Number(row.unfolded_length_cm),
+      unfoldedHeightCm:
+        row.unfolded_height_cm === null ? null : Number(row.unfolded_height_cm),
+    },
+    hasStorage: row.has_storage,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

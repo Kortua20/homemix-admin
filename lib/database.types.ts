@@ -199,6 +199,30 @@ export type Database = {
         }
         Relationships: []
       }
+      folding_mechanisms: {
+        Row: {
+          code: string
+          group_code: string
+          label_en: string
+          label_ka: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          group_code: string
+          label_en: string
+          label_ka: string
+          sort_order: number
+        }
+        Update: {
+          code?: string
+          group_code?: string
+          label_en?: string
+          label_ka?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           code: string
@@ -516,8 +540,11 @@ export type Database = {
           depth_cm: number | null
           description: string
           dimension_note: string | null
+          folding_mechanism: string | null
+          has_storage: boolean | null
           height_cm: number | null
           id: string
+          is_foldable: boolean
           length_cm: number | null
           listing_kind: string
           name: string
@@ -527,6 +554,9 @@ export type Database = {
           slug: string
           status: string
           stock_quantity: number | null
+          unfolded_height_cm: number | null
+          unfolded_length_cm: number | null
+          unfolded_width_cm: number | null
           updated_at: string
           weight_kg: number | null
           width_cm: number | null
@@ -540,8 +570,11 @@ export type Database = {
           depth_cm?: number | null
           description?: string
           dimension_note?: string | null
+          folding_mechanism?: string | null
+          has_storage?: boolean | null
           height_cm?: number | null
           id?: string
+          is_foldable?: boolean
           length_cm?: number | null
           listing_kind?: string
           name: string
@@ -551,6 +584,9 @@ export type Database = {
           slug: string
           status?: string
           stock_quantity?: number | null
+          unfolded_height_cm?: number | null
+          unfolded_length_cm?: number | null
+          unfolded_width_cm?: number | null
           updated_at?: string
           weight_kg?: number | null
           width_cm?: number | null
@@ -564,8 +600,11 @@ export type Database = {
           depth_cm?: number | null
           description?: string
           dimension_note?: string | null
+          folding_mechanism?: string | null
+          has_storage?: boolean | null
           height_cm?: number | null
           id?: string
+          is_foldable?: boolean
           length_cm?: number | null
           listing_kind?: string
           name?: string
@@ -575,6 +614,9 @@ export type Database = {
           slug?: string
           status?: string
           stock_quantity?: number | null
+          unfolded_height_cm?: number | null
+          unfolded_length_cm?: number | null
+          unfolded_width_cm?: number | null
           updated_at?: string
           weight_kg?: number | null
           width_cm?: number | null
@@ -592,6 +634,13 @@ export type Database = {
             columns: ["condition_grade"]
             isOneToOne: false
             referencedRelation: "condition_grades"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "products_folding_mechanism_fkey"
+            columns: ["folding_mechanism"]
+            isOneToOne: false
+            referencedRelation: "folding_mechanisms"
             referencedColumns: ["code"]
           },
         ]

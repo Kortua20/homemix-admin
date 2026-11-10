@@ -12,6 +12,7 @@ import {
 import { JumpLink } from "@/components/products/jump-link";
 import { ProductAiAssist } from "@/components/products/product-ai-assist";
 import { ProductAttributeFields } from "@/components/products/product-attribute-fields";
+import { ProductFeatureFields } from "@/components/products/product-feature-fields";
 import {
   ProductConditionFields,
   type AnchorablePhoto,
@@ -30,6 +31,7 @@ import type {
   AttributeSelection,
   ConditionAspect,
   ConditionGrade,
+  FoldingMechanism,
   ListingKind,
   Product,
   ProductAiSuggestion,
@@ -94,6 +96,7 @@ type ProductFormProps = {
   materials: ProductAttribute[];
   colours: ProductAttribute[];
   styles: ProductAttribute[];
+  foldingMechanisms: FoldingMechanism[];
   product?: Product;
 };
 
@@ -105,6 +108,7 @@ export function ProductForm({
   materials,
   colours,
   styles,
+  foldingMechanisms,
   product,
 }: ProductFormProps) {
   const action = mode === "create" ? createProduct : updateProduct;
@@ -201,6 +205,7 @@ export function ProductForm({
     },
     { key: "stockQuantity", id: "product-stock-quantity", label: "მარაგი" },
     { key: "dimensions", id: "product-width", label: "ზომები" },
+    { key: "features", id: "product-is-foldable", label: "გაშლა და სათავსო" },
     { key: "description", id: "product-description", label: "აღწერა" },
   ];
 
@@ -903,6 +908,14 @@ export function ProductForm({
             <FieldError id="product-dimensions-error">{state.fieldErrors.dimensions}</FieldError>
           ) : null}
         </fieldset>
+
+        {/* Next to the dimensions because the unfolded size is a second set of them. */}
+        <ProductFeatureFields
+          mechanisms={foldingMechanisms}
+          folding={product?.folding}
+          hasStorage={product?.hasStorage}
+          serverError={state.fieldErrors?.features}
+        />
 
         <div className="grid gap-2 lg:col-span-2">
           <Label htmlFor="product-description">აღწერა</Label>

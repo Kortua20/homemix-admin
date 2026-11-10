@@ -101,6 +101,10 @@ export type Product = {
   // Dimensions apply to both listing kinds — a new chair has a seat height too. Null means
   // "not measured", which is distinct from zero.
   dimensions: ProductDimensions;
+  folding: ProductFolding;
+  // Tri-state on purpose: null is "not specified", which is every product saved before the
+  // column existed. See the has_storage comment in the storefront's 03_products.sql.
+  hasStorage: boolean | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -140,6 +144,28 @@ export type ProductAiSuggestion = {
   // time. Empty when nothing usable came back or the check could not run.
   nameKa: string;
   descriptionKa: string;
+};
+
+// A row of folding_mechanisms. `groupCode` only splits the dropdown into sofa/armchair and
+// table sections; it does not restrict which products may use a mechanism.
+export type FoldingMechanismGroup = "seating" | "table";
+
+export type FoldingMechanism = {
+  code: string;
+  sortOrder: number;
+  groupCode: FoldingMechanismGroup;
+  labelKa: string;
+  labelEn: string;
+};
+
+// Mirrors products_folding_matches_foldable_check: when `isFoldable` is false every other
+// field here is null, and the server builds the payload so that can never be otherwise.
+export type ProductFolding = {
+  isFoldable: boolean;
+  mechanismCode: string | null;
+  unfoldedWidthCm: number | null;
+  unfoldedLengthCm: number | null;
+  unfoldedHeightCm: number | null;
 };
 
 export type ProductDimensions = {

@@ -19,6 +19,10 @@ import {
   conditionGradeSelect,
   normalizeConditionGrades,
 } from "@/lib/condition-grade-data";
+import {
+  foldingMechanismSelect,
+  normalizeFoldingMechanisms,
+} from "@/lib/folding-mechanism-data";
 import { createClient } from "@/lib/server";
 
 export const metadata: Metadata = {
@@ -34,6 +38,7 @@ export default async function NewProductPage() {
     materialsResult,
     coloursResult,
     stylesResult,
+    foldingMechanismsResult,
   ] = await Promise.all([
     supabase.from("categories").select("id, name, slug").order("name"),
     supabase
@@ -47,6 +52,10 @@ export default async function NewProductPage() {
     supabase.from("materials").select(materialSelect).order("sort_order"),
     supabase.from("colours").select(colourSelect).order("sort_order"),
     supabase.from("styles").select(styleSelect).order("sort_order"),
+    supabase
+      .from("folding_mechanisms")
+      .select(foldingMechanismSelect)
+      .order("sort_order"),
   ]);
   const { data, error } = categoriesResult;
   // A used product cannot be created without a grade, so an empty grade list is a load
@@ -95,6 +104,9 @@ export default async function NewProductPage() {
           materials={normalizeMaterials(materialsResult.data ?? [])}
           colours={normalizeColours(coloursResult.data ?? [])}
           styles={normalizeStyles(stylesResult.data ?? [])}
+          foldingMechanisms={normalizeFoldingMechanisms(
+            foldingMechanismsResult.data ?? [],
+          )}
         />
       )}
     </section>

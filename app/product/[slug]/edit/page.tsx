@@ -20,6 +20,10 @@ import {
   conditionGradeSelect,
   normalizeConditionGrades,
 } from "@/lib/condition-grade-data";
+import {
+  foldingMechanismSelect,
+  normalizeFoldingMechanisms,
+} from "@/lib/folding-mechanism-data";
 import { normalizeProduct, productSelect } from "@/lib/product-data";
 import { createClient } from "@/lib/server";
 import { decodeSlugParam } from "@/lib/slug";
@@ -46,6 +50,7 @@ export default async function EditProductPage({
     materialsResult,
     coloursResult,
     stylesResult,
+    foldingMechanismsResult,
   ] = await Promise.all([
     supabase
       .from("products")
@@ -64,6 +69,10 @@ export default async function EditProductPage({
     supabase.from("materials").select(materialSelect).order("sort_order"),
     supabase.from("colours").select(colourSelect).order("sort_order"),
     supabase.from("styles").select(styleSelect).order("sort_order"),
+    supabase
+      .from("folding_mechanisms")
+      .select(foldingMechanismSelect)
+      .order("sort_order"),
   ]);
   const product = productResult.data
     ? normalizeProduct(productResult.data)
@@ -119,6 +128,9 @@ export default async function EditProductPage({
           materials={normalizeMaterials(materialsResult.data ?? [])}
           colours={normalizeColours(coloursResult.data ?? [])}
           styles={normalizeStyles(stylesResult.data ?? [])}
+          foldingMechanisms={normalizeFoldingMechanisms(
+            foldingMechanismsResult.data ?? [],
+          )}
         />
       )}
     </section>

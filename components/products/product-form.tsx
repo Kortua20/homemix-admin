@@ -243,6 +243,13 @@ export function ProductForm({
       return;
     }
 
+    // Read directly rather than through an updater: the slug has to follow in the same
+    // step, which an updater cannot do. Safe because ProductAiAssist always calls the
+    // handler from the latest render, so `name` and `slugEdited` are current.
+    if (suggestion.nameKa && name.trim() === "") {
+      applyName(suggestion.nameKa);
+    }
+
     const suggestedCategory = suggestion.category;
     if (suggestedCategory && suggestedCategory.confidence !== "low") {
       setCategoryId((current) => (current === "" ? suggestedCategory.id : current));
@@ -270,6 +277,23 @@ export function ProductForm({
     setDescription(nextDescription);
     setDirty(true);
   }
+
+  // The same thing typing a name does: the slug follows until the admin edits it by hand.
+  function applyName(nextName: string) {
+    setName(nextName);
+    if (!slugEdited) {
+      setSlug(createSlug(nextName));
+    }
+  }
+
+  function handleUseSuggestedName() {
+    if (!aiSuggestion?.nameKa) return;
+    applyName(aiSuggestion.nameKa);
+    setDirty(true);
+  }
+
+  const suggestedName = aiSuggestion?.nameKa ?? "";
+  const nameFromAi = suggestedName !== "" && name === suggestedName;
 
   function handleChooseSuggestedCategory() {
     if (!aiSuggestion?.category) return;
@@ -370,6 +394,7 @@ export function ProductForm({
             onDescriptionChange={handleAiDescriptionChange}
             selection={attributeSelection}
             categoryId={categoryId}
+            name={name}
           />
         ) : null}
 
@@ -391,13 +416,33 @@ export function ProductForm({
             // would contradict the order the form is laid out in.
             aria-invalid={Boolean(state.fieldErrors?.name)}
             aria-describedby={
-              state.fieldErrors?.name ? "product-name-error" : undefined
+              state.fieldErrors?.name
+                ? "product-name-error"
+                : suggestedName
+                  ? "product-name-help"
+                  : undefined
             }
             className="h-12 border-clay-border bg-white"
           />
-          {state.fieldErrors?.name && (
+          {state.fieldErrors?.name ? (
             <FieldError id="product-name-error">{state.fieldErrors.name}</FieldError>
-          )}
+          ) : nameFromAi ? (
+            <p id="product-name-help" className="text-xs leading-5 text-quiet-ink">
+              AI-ს შემოთავაზება — სხვა პროდუქტს ასეთი სახელი არ აქვს. შენახვამდე
+              გადაამოწმეთ.
+            </p>
+          ) : suggestedName ? (
+            <p id="product-name-help" className="text-xs leading-5 text-quiet-ink">
+              AI გვთავაზობს: {suggestedName}.{" "}
+              <button
+                type="button"
+                onClick={handleUseSuggestedName}
+                className={NUDGE_LINK_CLASS}
+              >
+                გამოყენება
+              </button>
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-2 lg:col-span-2">

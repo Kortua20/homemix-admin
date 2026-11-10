@@ -136,6 +136,9 @@ export type ProductAiSuggestion = {
   materials: AiMaterialSuggestion[];
   styles: AiAttributeSuggestion[];
   materialNoteKa: string;
+  // Checked server-side against existing names, slugs and old redirect slugs at analysis
+  // time. Empty when nothing usable came back or the check could not run.
+  nameKa: string;
   descriptionKa: string;
 };
 

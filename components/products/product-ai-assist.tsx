@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { AlertCircle, LoaderCircle, Sparkles } from "lucide-react";
 
 import { suggestProductDetails } from "@/app/product/ai-actions";
@@ -37,6 +37,7 @@ type ProductAiAssistProps = {
   onDescriptionChange: (description: string) => void;
   selection: AttributeSelection;
   categoryId: string;
+  name: string;
 };
 
 const ATTRIBUTE_LABELS: [AttributeKind, string][] = [
@@ -57,9 +58,14 @@ function getResultSummary(
   selection: AttributeSelection,
   description: string,
   categoryId: string,
+  name: string,
 ) {
   // In the order the fields appear in the form, top to bottom.
   const links: { key: string; label: string; targetId: string }[] = [];
+
+  if (suggestion.nameKa !== "" && name === suggestion.nameKa) {
+    links.push({ key: "name", label: "დასახელება", targetId: "product-name" });
+  }
 
   if (suggestion.category && categoryId === suggestion.category.id) {
     links.push({
@@ -130,8 +136,16 @@ export function ProductAiAssist({
   onDescriptionChange,
   selection,
   categoryId,
+  name,
 }: ProductAiAssistProps) {
   const [analysing, startAnalysis] = useTransition();
+  // The answer arrives 5–15 s after the click. Calling the onSuggestion captured by the
+  // click would merge against the form as it was then, missing a name typed or a slug
+  // edited during the wait. The ref always holds the handler from the latest render.
+  const onSuggestionRef = useRef(onSuggestion);
+  useEffect(() => {
+    onSuggestionRef.current = onSuggestion;
+  });
   const [error, setError] = useState("");
   // The admin's own text, kept after they choose to replace it with the suggestion, so one
   // click puts it back. Null when there is nothing to undo.
@@ -161,7 +175,7 @@ export function ProductAiAssist({
           return;
         }
 
-        onSuggestion(result.suggestion);
+        onSuggestionRef.current(result.suggestion);
       } catch {
         setError("ფოტოების ანალიზი ვერ მოხერხდა. შეამოწმეთ კავშირი და სცადეთ ხელახლა.");
       } finally {
@@ -188,7 +202,7 @@ export function ProductAiAssist({
     suggestion.descriptionKa !== "" &&
     description !== suggestion.descriptionKa;
   const summary = suggestion
-    ? getResultSummary(suggestion, selection, description, categoryId)
+    ? getResultSummary(suggestion, selection, description, categoryId, name)
     : null;
 
   return (

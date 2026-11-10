@@ -17,6 +17,7 @@ import {
   styleSelect,
 } from "@/lib/attribute-data";
 import { getOpenAIClient, getProductAnalysisModel } from "@/lib/openai";
+import { createSlug } from "@/lib/slug";
 import {
   MAX_AI_ANALYSIS_IMAGES,
   MAX_AI_ANALYSIS_IMAGE_SIZE,
@@ -38,6 +39,13 @@ const CONFIDENCE_VALUES = ["high", "medium", "low"] as const;
 const MATERIAL_BASIS_VALUES = ["visible", "inferred"] as const;
 
 const MAX_DESCRIPTION_LENGTH = 5000; // products_description_check
+const MAX_NAME_LENGTH = 160; // matches readProductFields
+const MAX_SLUG_LENGTH = 160; // products_slug_check
+const MAX_NAME_ALTERNATIVES = 3;
+// Numbered fallbacks ("… #2" … "… #21") checked in the same query as the AI's candidates.
+// Twenty identical-looking items without a single distinguishing detail is past what a
+// number can usefully tell apart anyway.
+const NUMBERED_NAME_FALLBACKS = 20;
 const MAX_NOTE_LENGTH = 500;
 const MAX_COLOURS = 3;
 const MAX_MATERIALS = 4;
@@ -100,6 +108,8 @@ Rules:
 - materials: at most ${MAX_MATERIALS}. Use basis "visible" only when the material is unambiguous in the photos (for example glass, a metal frame, a rattan weave, fabric upholstery). Use basis "inferred" for anything a photo cannot confirm, in particular: solid wood vs. veneered MDF or plywood; the wood species (oak, beech, pine, walnut); leather vs. faux leather; linen vs. cotton; velvet vs. other pile fabrics. Never combine basis "inferred" with confidence "high".
 - material_note_ka: one or two short Georgian sentences on what is uncertain about the materials (for example that a wood-look surface may be veneer), or "" if nothing is.
 - styles: at most ${MAX_STYLES}, only when clearly recognisable; otherwise [].
+- name_ka: a Georgian product title, 2–6 words, at most 60 characters. Start with what the item is (for example "სასადილო მაგიდა", "კუთხის დივანი"), then the most visible qualities: colour, shape, upholstery. Name a material only if its basis is "visible"; for a wood-look surface say "ხის" rather than a species. Never invent brand, model, collection or series names, and never add numbers. No quotation marks, condition words or price.
+- name_alternatives_ka: exactly ${MAX_NAME_ALTERNATIVES} more titles following the same rules. Each must differ from name_ka and from the others by one more visible detail (shape, size class such as "ორადგილიანი" or "ექვსადგილიანი", style, colour, a feature such as drawers or armrests). The shop may already have an item called name_ka, so these are what tells this one apart.
 - description_ka: factual, warm Georgian shop copy, 400–900 characters, plain text, no markdown, headings or emoji. Cover the type of furniture, its form, visible features (drawers, doors, legs, armrests, upholstery, hardware), colours and materials. For any material that is not basis "visible", use hedged wording (for example "ხის ზედაპირით", "ტყავის მსგავსი გადასაკრავით") instead of naming it as fact.
 - If the photos do not show furniture or home furnishings, set is_furniture to false, return empty arrays and empty strings.
 - If the photos appear to show different products, set same_item to false and describe the product shown in most of the photos.
@@ -145,6 +155,8 @@ function buildResponseSchema(vocabulary: Vocabulary) {
       "materials",
       "material_note_ka",
       "styles",
+      "name_ka",
+      "name_alternatives_ka",
       "description_ka",
     ],
     properties: {
@@ -180,6 +192,10 @@ function buildResponseSchema(vocabulary: Vocabulary) {
       },
       material_note_ka: { type: "string" },
       styles: { type: "array", items: codedItem(codesOf(vocabulary.styles)) },
+      // After the attributes for the same reason as the description: the title can only
+      // name a material the model has already committed to as visible.
+      name_ka: { type: "string" },
+      name_alternatives_ka: { type: "array", items: { type: "string" } },
       description_ka: { type: "string" },
     },
   };
@@ -257,6 +273,86 @@ function readCategory(
   return match ? { id: match.id, confidence: raw.confidence } : null;
 }
 
+// Same normalisation readProductFields applies on save, so the name checked for
+// uniqueness here is the name that would be stored. Quotation marks and backslashes are
+// dropped: they add nothing to a title, and supabase-js quotes `in` values containing
+// , ( or ) without escaping either, so they would corrupt the filter below.
+function normalizeName(value: string) {
+  return value.replace(/["„“”«»\\]/g, "").trim().replace(/\s+/g, " ");
+}
+
+// The AI's title candidates, in preference order, each usable as a product name and slug.
+function readNameCandidates(raw: Record<string, unknown>) {
+  const alternatives = Array.isArray(raw.name_alternatives_ka)
+    ? raw.name_alternatives_ka.slice(0, MAX_NAME_ALTERNATIVES)
+    : [];
+  const seenSlugs = new Set<string>();
+
+  return [raw.name_ka, ...alternatives]
+    .filter((value): value is string => typeof value === "string")
+    .map(normalizeName)
+    .filter((name) => {
+      const slug = createSlug(name);
+      // Georgian transliterates longer (ჟ → zh), so the slug limit can bind first.
+      const usable =
+        name.length >= 2 &&
+        name.length <= MAX_NAME_LENGTH &&
+        slug.length >= 2 &&
+        slug.length <= MAX_SLUG_LENGTH &&
+        !seenSlugs.has(slug);
+      seenSlugs.add(slug);
+      return usable;
+    });
+}
+
+// Picks the first candidate nobody else has — checked against live slugs, the old slugs
+// that still redirect to renamed products (reusing one would hijack its shared links), and
+// existing names, since two products may share a slug-less spelling difference (ტ and თ
+// both transliterate to "t") or simply the same title.
+//
+// Fails closed: if the lookup errors, no name is suggested rather than an unchecked one.
+// The products_slug_key constraint still guards the save either way, and a name the admin
+// edits afterwards is theirs to keep unique.
+async function pickUniqueName(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  candidates: string[],
+) {
+  if (candidates.length === 0) return "";
+
+  const base = candidates[0];
+  const numbered = Array.from(
+    { length: NUMBERED_NAME_FALLBACKS },
+    (_, index) => `${base} #${index + 2}`,
+  ).filter((name) => createSlug(name).length <= MAX_SLUG_LENGTH);
+  const names = [...candidates, ...numbered];
+  const slugs = names.map(createSlug);
+
+  const [bySlug, byName, redirects] = await Promise.all([
+    supabase.from("products").select("slug").in("slug", slugs),
+    supabase.from("products").select("name").in("name", names),
+    supabase.from("product_slug_redirects").select("old_slug").in("old_slug", slugs),
+  ]);
+
+  if (bySlug.error || byName.error || redirects.error) {
+    console.error(
+      "Product name uniqueness check failed",
+      bySlug.error || byName.error || redirects.error,
+    );
+    return "";
+  }
+
+  const takenSlugs = new Set([
+    ...bySlug.data.map((row) => row.slug),
+    ...redirects.data.map((row) => row.old_slug),
+  ]);
+  const takenNames = new Set(byName.data.map((row) => row.name));
+
+  return (
+    names.find((name) => !takenSlugs.has(createSlug(name)) && !takenNames.has(name)) ??
+    ""
+  );
+}
+
 function readSuggestion(
   raw: unknown,
   vocabulary: Vocabulary,
@@ -290,6 +386,8 @@ function readSuggestion(
     materials: readMaterialList(raw.materials, codeSet(vocabulary.materials)),
     styles: readCodedList(raw.styles, codeSet(vocabulary.styles), MAX_STYLES),
     materialNoteKa: materialNote.trim().slice(0, MAX_NOTE_LENGTH),
+    // Filled in by the caller once uniqueness has been checked against the database.
+    nameKa: "",
     descriptionKa: description.trim().slice(0, MAX_DESCRIPTION_LENGTH),
   };
 }
@@ -483,6 +581,12 @@ export async function suggestProductDetails(
         status: "error",
         message: "AI-ს პასუხი ვერ დამუშავდა. სცადეთ ხელახლა.",
       };
+    }
+
+    // Not for photos that are not furniture: there is nothing to name, and no reason to
+    // spend three lookups proving it.
+    if (suggestion.isFurniture && isRecord(parsed)) {
+      suggestion.nameKa = await pickUniqueName(supabase, readNameCandidates(parsed));
     }
 
     return { status: "success", suggestion };

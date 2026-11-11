@@ -47,6 +47,17 @@ export const productSelect = `
   unfolded_length_cm,
   unfolded_height_cm,
   has_storage,
+  finances:product_finances ( purchase_price ),
+  sales:product_sales (
+    id,
+    quantity,
+    total_price,
+    unit_cost,
+    list_unit_price,
+    sold_on,
+    note,
+    created_at
+  ),
   conditionGrade:condition_grades!products_condition_grade_fkey (
     code,
     sort_order,
@@ -463,6 +474,30 @@ export function normalizeProduct(row: ProductQueryRow): Product | null {
         row.unfolded_height_cm === null ? null : Number(row.unfolded_height_cm),
     },
     hasStorage: row.has_storage,
+    // One-to-one embed: an object, or null for a product saved before product_finances
+    // existed. Same Number(null) guard as above — an unrecorded price must stay null.
+    finances: {
+      purchasePrice:
+        row.finances?.purchase_price == null
+          ? null
+          : Number(row.finances.purchase_price),
+    },
+    sales: (row.sales ?? [])
+      .map((sale) => ({
+        id: sale.id,
+        quantity: Number(sale.quantity),
+        totalPrice: Number(sale.total_price),
+        unitCost: sale.unit_cost === null ? null : Number(sale.unit_cost),
+        listUnitPrice: Number(sale.list_unit_price),
+        soldOn: sale.sold_on,
+        note: sale.note,
+        createdAt: sale.created_at,
+      }))
+      .sort(
+        (first, second) =>
+          second.soldOn.localeCompare(first.soldOn) ||
+          second.createdAt.localeCompare(first.createdAt),
+      ),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

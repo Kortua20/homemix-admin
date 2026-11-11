@@ -320,6 +320,32 @@ export type Database = {
           },
         ]
       }
+      product_finances: {
+        Row: {
+          product_id: string
+          purchase_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          product_id: string
+          purchase_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          product_id?: string
+          purchase_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_finances_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_flaws: {
         Row: {
           created_at: string
@@ -441,6 +467,50 @@ export type Database = {
           },
           {
             foreignKeyName: "product_materials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_sales: {
+        Row: {
+          created_at: string
+          id: string
+          list_unit_price: number
+          note: string | null
+          product_id: string
+          quantity: number
+          sold_on: string
+          total_price: number
+          unit_cost: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list_unit_price: number
+          note?: string | null
+          product_id: string
+          quantity: number
+          sold_on: string
+          total_price: number
+          unit_cost?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list_unit_price?: number
+          note?: string | null
+          product_id?: string
+          quantity?: number
+          sold_on?: string
+          total_price?: number
+          unit_cost?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_sales_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
@@ -668,9 +738,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      product_accounting: {
+        Row: {
+          category_id: string | null
+          category_name: string | null
+          created_at: string | null
+          has_sales: boolean | null
+          id: string | null
+          listing_kind: string | null
+          name: string | null
+          price: number | null
+          purchase_price: number | null
+          slug: string | null
+          status: string | null
+          stock_quantity: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_sale_ledger: {
+        Row: {
+          category_name: string | null
+          created_at: string | null
+          id: string | null
+          list_unit_price: number | null
+          listing_kind: string | null
+          name: string | null
+          note: string | null
+          product_id: string | null
+          quantity: number | null
+          slug: string | null
+          sold_on: string | null
+          total_price: number | null
+          unit_cost: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      delete_product_sale: { Args: { p_sale_id: string }; Returns: undefined }
       record_product_view: {
         Args: {
           p_ip_hash: string
@@ -679,6 +800,16 @@ export type Database = {
           p_visitor_hash: string
         }
         Returns: boolean
+      }
+      record_product_sale: {
+        Args: {
+          p_note?: string
+          p_product_id: string
+          p_quantity: number
+          p_sold_on: string
+          p_total_price: number
+        }
+        Returns: string
       }
       release_contact_email_quota: {
         Args: { p_client_id: string; p_secret: string }

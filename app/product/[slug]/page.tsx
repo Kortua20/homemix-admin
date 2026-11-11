@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ImageOff, Pencil } from "lucide-react";
+import { ArrowLeft, ImageOff, Lock, Pencil } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { DeleteProductButton } from "@/components/products/delete-product-button";
+import { ProductSalesHistory } from "@/components/products/product-sales-history";
+import type { Product } from "@/components/products/types";
 import { ProductStatusBadge } from "@/components/products/product-status-badge";
+import { RecordSaleForm } from "@/components/products/record-sale-form";
+import { formatMoney } from "@/lib/accounting/format";
 import {
   formatPrice,
   getProductImageUrl,
@@ -22,6 +26,103 @@ export const metadata: Metadata = {
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+// Staff-only figures from product_finances and product_sales. A missing figure is shown as
+// "—", never as 0, and profit is totalled only over sales whose cost is known — the count of
+// those that are not is shown beside it, as on the accounting page.
+function FinanceSection({ product }: { product: Product }) {
+  const { finances, sales } = product;
+  const isStocked = product.listingKind === "new_stocked";
+  const units = sales.reduce((sum, sale) => sum + sale.quantity, 0);
+  const revenue = sales.reduce((sum, sale) => sum + sale.totalPrice, 0);
+  const costed = sales.filter((sale) => sale.unitCost !== null);
+  const profit = costed.reduce(
+    (sum, sale) => sum + sale.totalPrice - (sale.unitCost ?? 0) * sale.quantity,
+    0,
+  );
+  const uncosted = sales.length - costed.length;
+
+  const rows: [string, string][] = [
+    [isStocked ? "შესყიდვის ფასი (ერთ.)" : "შესყიდვის ფასი", formatMoney(finances.purchasePrice)],
+    ...(sales.length > 0
+      ? ([
+          ["გაყიდულია", `${units} ცალი`],
+          ["შემოსავალი", formatMoney(revenue)],
+          [
+            uncosted > 0 ? "მოგება (მხოლოდ ცნობილი შესყიდვის ფასით)" : "მოგება",
+            formatMoney(costed.length > 0 ? profit : null),
+          ],
+        ] as [string, string][])
+      : []),
+  ];
+
+  return (
+    <section
+      aria-labelledby="product-finances-heading"
+      className="rounded-3xl bg-white p-5 shadow-[0_16px_30px_rgba(0,0,0,0.04)] lg:p-7"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="product-finances-heading" className="text-xl font-bold">
+          შიდა ფინანსები
+        </h2>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-soft-linen px-2.5 py-1 text-xs font-semibold text-quiet-ink">
+          <Lock aria-hidden="true" className="size-3.5" />
+          საიტზე არ ჩანს
+        </span>
+      </div>
+      <dl className="mt-5 divide-y divide-hairline">
+        {rows.map(([label, value]) => (
+          <div
+            key={label}
+            className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+          >
+            <dt className="text-sm text-quiet-ink">{label}</dt>
+            <dd className="text-right text-sm font-semibold tabular-nums">
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {/* A used item marked sold before sales were recorded: say so, rather than showing a
+          sold item with no sale as if nothing were missing. */}
+      {!isStocked && product.status === "sold" && sales.length === 0 ? (
+        <p className="mt-4 rounded-xl bg-status-reserved-surface px-4 py-3 text-sm leading-6 text-status-reserved-ink">
+          გაყიდულად არის მონიშნული, მაგრამ გაყიდვის ფასი არ არის დაფიქსირებული —
+          დაამატეთ რედაქტირების გვერდიდან, რომ ბუღალტერიაში ჩაითვალოს.
+        </p>
+      ) : null}
+
+      {isStocked ? (
+        <div className="mt-6 border-t border-hairline pt-5">
+          <h3 className="text-base font-semibold">გაყიდვის დაფიქსირება</h3>
+          <div className="mt-4">
+            <RecordSaleForm
+              productId={product.id}
+              slug={product.slug}
+              stock={product.stockQuantity ?? 0}
+              listPrice={product.price}
+              purchasePrice={finances.purchasePrice}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {sales.length > 0 ? (
+        <div className="mt-6 border-t border-hairline pt-5">
+          <h3 className="text-base font-semibold">გაყიდვების ისტორია</h3>
+          <div className="mt-4">
+            <ProductSalesHistory
+              sales={sales}
+              slug={product.slug}
+              canUndo={isStocked}
+            />
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug: rawSlug } = await params;
@@ -194,6 +295,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </div>
             </dl>
           </section>
+
+          <FinanceSection product={product} />
 
           {product.dimensions.widthCm !== null ||
           product.dimensions.lengthCm !== null ||

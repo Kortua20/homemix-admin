@@ -6,12 +6,12 @@ import { notFound } from "next/navigation";
 import { DeleteProductButton } from "@/components/products/delete-product-button";
 import { ProductSalesHistory } from "@/components/products/product-sales-history";
 import type { Product } from "@/components/products/types";
+import { ProductPhotoGallery } from "@/components/products/product-photo-gallery";
 import { ProductStatusBadge } from "@/components/products/product-status-badge";
 import { RecordSaleForm } from "@/components/products/record-sale-form";
 import { formatMoney } from "@/lib/accounting/format";
 import {
   formatPrice,
-  getProductImageUrl,
   LISTING_KIND_LABELS,
   normalizeProduct,
   productSelect,
@@ -187,25 +187,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <h2 id="product-photo-heading" className="sr-only">
               პროდუქტის ფოტოები
             </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {product.images.map((image, index) => (
-                <div
-                  key={image.id}
-                  className={
-                    index === 0
-                      ? "col-span-2 aspect-4/3 overflow-hidden rounded-2xl bg-image-placeholder"
-                      : "aspect-square overflow-hidden rounded-2xl bg-image-placeholder"
-                  }
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={getProductImageUrl(image.id)}
-                    alt={`${product.name} — ფოტო ${index + 1}`}
-                    className="size-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
+            <ProductPhotoGallery
+              images={product.images}
+              productName={product.name}
+            />
           </section>
         ) : (
           <section

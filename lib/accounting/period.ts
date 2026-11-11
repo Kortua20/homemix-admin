@@ -11,7 +11,7 @@ import {
 // accountant as a link.
 //
 //   ?view=sales|stock
-//   ?period=this-month|7d|1m|3m|1y|all|custom
+//   ?period=this-month|7d|1m|3m|6m|1y|all|custom
 //   ?from=YYYY-MM-DD&to=YYYY-MM-DD   (custom only)
 
 export const ACCOUNTING_VIEWS = ["sales", "stock"] as const;
@@ -22,6 +22,7 @@ export const PERIOD_PRESETS = [
   "7d",
   "1m",
   "3m",
+  "6m",
   "1y",
   "all",
   "custom",
@@ -33,6 +34,7 @@ export const PERIOD_LABELS: Record<PeriodPreset, string> = {
   "7d": "ბოლო 7 დღე",
   "1m": "ბოლო თვე",
   "3m": "ბოლო 3 თვე",
+  "6m": "ბოლო 6 თვე",
   "1y": "ბოლო წელი",
   all: "მთელი პერიოდი",
   custom: "თარიღების მიხედვით",
@@ -91,6 +93,8 @@ export function resolvePeriod(
       return { preset, from: addDays(addMonths(today, -1), 1), to: today };
     case "3m":
       return { preset, from: addDays(addMonths(today, -3), 1), to: today };
+    case "6m":
+      return { preset, from: addDays(addMonths(today, -6), 1), to: today };
     case "1y":
       return { preset, from: addDays(addMonths(today, -12), 1), to: today };
     case "all":

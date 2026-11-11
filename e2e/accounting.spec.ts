@@ -27,6 +27,10 @@ test("switches between period presets through the URL", async ({ page }) => {
   await expect(page.getByRole("link", { name: "ბოლო 7 დღე" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("status").filter({ hasText: "ნაჩვენებია" })).toContainText(" — ");
 
+  await page.getByRole("link", { name: "ბოლო 6 თვე" }).click();
+  await expect(page).toHaveURL(/period=6m/);
+  await expect(page.getByRole("link", { name: "ბოლო 6 თვე" })).toHaveAttribute("aria-current", "page");
+
   await page.getByRole("link", { name: "მთელი პერიოდი" }).click();
   await expect(page.getByRole("status").filter({ hasText: "ნაჩვენებია" })).toContainText(
     "მთელი პერიოდი",

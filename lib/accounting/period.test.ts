@@ -18,9 +18,19 @@ describe("resolvePeriod presets", () => {
     ["7d", "2026-11-05"],
     ["1m", "2026-10-12"],
     ["3m", "2026-08-12"],
+    ["6m", "2026-05-12"],
     ["1y", "2025-11-12"],
   ])("%s ends today and includes it", (preset, from) => {
     expect(resolve({ period: preset })).toEqual({ preset, from, to: TODAY });
+  });
+
+  it("6 months back from a month's last day clamps into a short February", () => {
+    // 31 August − 6 months is 28 February (no 31st), so the range starts 1 March.
+    expect(resolvePeriod({ period: "6m" }, "2026-08-31")).toEqual({
+      preset: "6m",
+      from: "2026-03-01",
+      to: "2026-08-31",
+    });
   });
 
   it("'all' has no bounds", () => {

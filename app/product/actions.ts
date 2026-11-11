@@ -9,8 +9,11 @@ import {
   MAX_PRODUCT_IMAGE_UPLOAD_TOTAL,
   isAllowedProductImage,
 } from "@/lib/product-image-constraints";
-import { readOptionalMoney, validateSaleDate } from "@/lib/accounting/sale-input";
-import { todayInTbilisi } from "@/lib/business-date";
+import { syncUsedSale, writePurchasePrice } from "@/lib/accounting/finance-writes";
+import {
+  readFinanceFields,
+  resolveUsedSaleDate,
+} from "@/lib/accounting/sale-input";
 import { isFlawSeverity, isFlawType } from "@/lib/flaw-data";
 import { deleteR2Objects, uploadProductImage } from "@/lib/r2";
 import { createClient } from "@/lib/server";
@@ -324,173 +327,19 @@ function getPublishedAtUpdate(
   return { published_at: new Date().toISOString() };
 }
 
-// Internal figures, written to product_finances / product_sales rather than products so the
-// storefront's publishable key can never read them (see the storefront's
-// schemas/10_product_finances.sql).
-type FinanceInput = {
-  purchasePrice: number | null;
-  // The sale of a USED item, as entered in the form. Null unless the item is used and the
-  // status is `sold`. A new item's sales are recorded one at a time from the product page
-  // (app/product/sale-actions.ts), because each one must also take units off the stock.
-  usedSale: { totalPrice: number | null; soldOn: string | null } | null;
-};
-
+// The finance rules — what the form's purchase and sale fields mean, and how they are
+// written — live in lib/accounting (sale-input.ts, finance-writes.ts) rather than here, so
+// they can be unit-tested without driving a whole product save through R2 and Supabase.
 type SupabaseWriter = NonNullable<
   Awaited<ReturnType<typeof getAuthorizedClient>>["supabase"]
 >;
 
-// The used-item sale fields only mean anything while the item is `sold`, so they are built
-// from the status the same way condition is built from listing_kind: for any other status
-// they are ignored whatever the form sent, and syncUsedSale removes the sale. Moving an item
-// back from `sold` (a cancelled sale, a misclick) therefore takes it out of the books
-// instead of leaving a sale recorded against something still for sale.
-function readFinanceFields(
-  formData: FormData,
-  status: string,
-  listingKind: string,
-) {
-  const purchasePrice = readOptionalMoney(formData.get("purchasePrice"));
-  const recordsUsedSale = status === "sold" && listingKind === "used_unique";
-  const salePrice = recordsUsedSale
-    ? readOptionalMoney(formData.get("salePrice"))
-    : null;
-  const soldOn = recordsUsedSale
-    ? String(formData.get("soldOn") ?? "").trim()
-    : "";
-  let error: string | undefined;
-
-  if (purchasePrice === undefined) {
-    error = "შეიყვანეთ სწორი, არაუარყოფითი შესყიდვის ფასი, ან დატოვეთ ცარიელი.";
-  } else if (salePrice === undefined) {
-    error = "შეიყვანეთ სწორი, არაუარყოფითი გაყიდვის ფასი, ან დატოვეთ ცარიელი.";
-  } else if (soldOn) {
-    error = validateSaleDate(soldOn);
-  }
-
-  const values: FinanceInput = {
-    purchasePrice: purchasePrice ?? null,
-    usedSale: recordsUsedSale
-      ? { totalPrice: salePrice ?? null, soldOn: soldOn || null }
-      : null,
-  };
-
-  return { values, error };
-}
-
-// The sale date of a used item, mirroring getPublishedAtUpdate below: a blank date is stamped
-// with today only on the transition INTO `sold`. An item already sold before sales were
-// recorded must be given its real date — stamping today would book an old sale into the
-// current month — so for it a blank date is an error, reported before anything is written.
-function resolveUsedSaleDate(
-  input: FinanceInput,
-  previousStatus: string | null,
-): { soldOn: string | null; error?: string } {
-  const sale = input.usedSale;
-  if (!sale || sale.totalPrice === null) return { soldOn: null };
-  if (sale.soldOn) return { soldOn: sale.soldOn };
-  if (previousStatus === "sold") {
-    return {
-      soldOn: null,
-      error: "მიუთითეთ გაყიდვის თარიღი — ნივთი უკვე გაყიდულად იყო მონიშნული.",
-    };
-  }
-  return { soldOn: todayInTbilisi() };
-}
-
-// One row per product, so an upsert covers both the first save after the table existed and
-// every later one. Returns the error rather than throwing: create and update recover from a
-// failure here differently.
 // Undoes a createProduct that failed part-way. The sale row is deleted first because
 // product_sales_product_id_fkey is RESTRICT; everything else hanging off the product
 // cascades with it.
 async function rollBackCreatedProduct(supabase: SupabaseWriter, productId: string) {
   await supabase.from("product_sales").delete().eq("product_id", productId);
   await supabase.from("products").delete().eq("id", productId);
-}
-
-async function writePurchasePrice(
-  supabase: SupabaseWriter,
-  productId: string,
-  purchasePrice: number | null,
-) {
-  const { error } = await supabase.from("product_finances").upsert(
-    {
-      product_id: productId,
-      purchase_price: purchasePrice,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "product_id" },
-  );
-
-  return error;
-}
-
-// Keeps a used item's single sale row in step with the form: present exactly while the item
-// is `sold` with a sale price entered, removed otherwise. Its unit_cost follows the current
-// purchase price, because for a one-off object a corrected cost is a correction, not a new
-// batch bought at a different price.
-//
-// Only for items that were already used before this save (`previousKind`): a product
-// switched from new to used carries a history of stocked sales, which this must not touch.
-async function syncUsedSale(
-  supabase: SupabaseWriter,
-  {
-    productId,
-    listingKind,
-    previousKind,
-    listPrice,
-    input,
-    soldOn,
-  }: {
-    productId: string;
-    listingKind: string;
-    previousKind: string | null;
-    listPrice: number;
-    input: FinanceInput;
-    soldOn: string | null;
-  },
-) {
-  if (listingKind !== "used_unique") return null;
-  if (previousKind !== null && previousKind !== "used_unique") return null;
-
-  const { data: existing, error: readError } = await supabase
-    .from("product_sales")
-    .select("id")
-    .eq("product_id", productId)
-    .order("created_at", { ascending: true });
-
-  if (readError) return readError;
-
-  const totalPrice = input.usedSale?.totalPrice ?? null;
-
-  if (totalPrice === null || soldOn === null) {
-    if (!existing || existing.length === 0) return null;
-    const { error } = await supabase
-      .from("product_sales")
-      .delete()
-      .eq("product_id", productId);
-    return error;
-  }
-
-  const row = {
-    product_id: productId,
-    quantity: 1,
-    total_price: totalPrice,
-    unit_cost: input.purchasePrice,
-    list_unit_price: listPrice,
-    sold_on: soldOn,
-  };
-
-  if (existing && existing.length > 0) {
-    const { error } = await supabase
-      .from("product_sales")
-      .update(row)
-      .eq("id", existing[0].id);
-    return error;
-  }
-
-  const { error } = await supabase.from("product_sales").insert(row);
-  return error;
 }
 
 // Each new photo carries a client-generated id so a flaw submitted in the same request can

@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, Shapes } from "lucide-react";
+import { Calculator, Package, Shapes } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -12,6 +12,7 @@ export function DashboardNavigation({ mobile = false }: { mobile?: boolean }) {
     pathname === "/dashboard" || pathname.startsWith("/product/");
   const categoryActive =
     pathname.startsWith("/categories") || pathname.startsWith("/category/");
+  const accountingActive = pathname.startsWith("/accounting");
 
   if (mobile) {
     return (
@@ -45,6 +46,19 @@ export function DashboardNavigation({ mobile = false }: { mobile?: boolean }) {
           <Shapes aria-hidden="true" className="size-5" />
           კატალოგი
         </Link>
+        <Link
+          href="/accounting"
+          aria-current={accountingActive ? "page" : undefined}
+          className={cn(
+            "flex flex-col items-center gap-1 rounded-full px-4 py-1 text-[10px]",
+            accountingActive
+              ? "bg-warm-mist/40 font-bold text-walnut"
+              : "font-medium text-quiet-ink",
+          )}
+        >
+          <Calculator aria-hidden="true" className="size-5" />
+          ბუღალტერია
+        </Link>
       </nav>
     );
   }
@@ -76,6 +90,19 @@ export function DashboardNavigation({ mobile = false }: { mobile?: boolean }) {
       >
         <Shapes aria-hidden="true" className="size-5" />
         კატალოგი
+      </Link>
+      <Link
+        href="/accounting"
+        aria-current={accountingActive ? "page" : undefined}
+        className={cn(
+          "flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold tracking-wider",
+          accountingActive
+            ? "bg-warm-mist text-walnut"
+            : "text-quiet-ink transition-colors hover:bg-soft-linen",
+        )}
+      >
+        <Calculator aria-hidden="true" className="size-5" />
+        ბუღალტერია
       </Link>
     </nav>
   );

@@ -23,7 +23,7 @@ export default function NewCategoryPage() {
         <h1 className="text-3xl font-bold tracking-[-0.02em] lg:text-5xl">
           კატალოგის შექმნა
         </h1>
-        <p className="mt-2 text-sm leading-6 text-quiet-ink lg:text-base">
+        <p className="mt-3 text-sm leading-6 text-quiet-ink lg:mt-4 lg:text-base">
           შეავსეთ დასახელება, აღწერა და დაამატეთ იმდენი ფოტო, რამდენიც
           საჭიროა.
         </p>

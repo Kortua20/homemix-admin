@@ -9,6 +9,11 @@ import {
   MAX_PRODUCT_IMAGE_UPLOAD_TOTAL,
   isAllowedProductImage,
 } from "@/lib/product-image-constraints";
+import { syncUsedSale, writePurchasePrice } from "@/lib/accounting/finance-writes";
+import {
+  readFinanceFields,
+  resolveUsedSaleDate,
+} from "@/lib/accounting/sale-input";
 import { isFlawSeverity, isFlawType } from "@/lib/flaw-data";
 import { deleteR2Objects, uploadProductImage } from "@/lib/r2";
 import { createClient } from "@/lib/server";
@@ -44,6 +49,7 @@ export type ProductActionState = {
     dimensions?: string;
     features?: string;
     attributes?: string;
+    finances?: string;
   };
 };
 
@@ -319,6 +325,21 @@ function getPublishedAtUpdate(
 ): { published_at: string } | Record<string, never> {
   if (nextStatus !== "available" || currentPublishedAt !== null) return {};
   return { published_at: new Date().toISOString() };
+}
+
+// The finance rules — what the form's purchase and sale fields mean, and how they are
+// written — live in lib/accounting (sale-input.ts, finance-writes.ts) rather than here, so
+// they can be unit-tested without driving a whole product save through R2 and Supabase.
+type SupabaseWriter = NonNullable<
+  Awaited<ReturnType<typeof getAuthorizedClient>>["supabase"]
+>;
+
+// Undoes a createProduct that failed part-way. The sale row is deleted first because
+// product_sales_product_id_fkey is RESTRICT; everything else hanging off the product
+// cascades with it.
+async function rollBackCreatedProduct(supabase: SupabaseWriter, productId: string) {
+  await supabase.from("product_sales").delete().eq("product_id", productId);
+  await supabase.from("products").delete().eq("id", productId);
 }
 
 // Each new photo carries a client-generated id so a flaw submitted in the same request can
@@ -652,6 +673,11 @@ function getDatabaseErrorMessage(code?: string, constraint?: string) {
     return "არჩეული გაშლის მექანიზმი აღარ არსებობს.";
   }
 
+  // product_sales is RESTRICT: sales must not vanish from the books with their product.
+  if (code === "23503" && constraint?.includes("product_sales")) {
+    return "ამ პროდუქტს გაყიდვები აქვს დაფიქსირებული და ბუღალტერიიდან არ უნდა წაიშალოს. წაშლის ნაცვლად დააარქივეთ.";
+  }
+
   if (code === "23503") {
     return "არჩეული კატალოგი აღარ არსებობს.";
   }
@@ -668,12 +694,19 @@ export async function createProduct(
   formData: FormData,
 ): Promise<ProductActionState> {
   const { values, fieldErrors } = readProductFields(formData);
+  const finances = readFinanceFields(formData, values.status, values.listing_kind);
+  // A product created as `sold` (entered after the fact) has no previous status, so a blank
+  // sale date is stamped with today.
+  const usedSaleDate = resolveUsedSaleDate(finances.values, null);
   const imageFiles = readProductImageFiles(formData);
 
   if (imageFiles.error) {
     fieldErrors.images = imageFiles.error;
   }
 
+  if (finances.error || usedSaleDate.error) {
+    fieldErrors.finances = finances.error || usedSaleDate.error;
+  }
 
   if (Object.keys(fieldErrors).length > 0) {
     return {
@@ -703,6 +736,34 @@ export async function createProduct(
       // PostgREST errors carry no `constraint` field, but the message names the violated
       // constraint — without it every 23503 here would claim the category is gone.
       message: getDatabaseErrorMessage(error.code, error.message),
+    };
+  }
+
+  // Before the photos, so a failure here has nothing in R2 to clean up — only the product
+  // row and, if it got that far, the sale row. The sale must go first: product_sales
+  // restricts deleting a product that has sales.
+  const financeError =
+    (await writePurchasePrice(
+      authorization.supabase,
+      data.id,
+      finances.values.purchasePrice,
+    )) ??
+    (await syncUsedSale(authorization.supabase, {
+      productId: data.id,
+      listingKind: values.listing_kind,
+      previousKind: null,
+      listPrice: values.price,
+      input: finances.values,
+      soldOn: usedSaleDate.soldOn,
+    }));
+
+  if (financeError) {
+    await rollBackCreatedProduct(authorization.supabase, data.id);
+
+    return {
+      status: "error",
+      message: "პროდუქტი ვერ შეიქმნა: ფინანსური მონაცემები ვერ შეინახა. გთხოვთ, კიდევ სცადოთ.",
+      fieldErrors: { finances: "ფინანსური მონაცემების შენახვა ვერ დასრულდა." },
     };
   }
 
@@ -763,7 +824,7 @@ export async function createProduct(
     await deleteR2Objects(imageRows.map((image) => image.object_key)).catch(
       () => undefined,
     );
-    await authorization.supabase.from("products").delete().eq("id", data.id);
+    await rollBackCreatedProduct(authorization.supabase, data.id);
 
     // A client-supplied image id that collides with an existing row arrives here as a
     // 23505 on product_images. Without naming it, the user would see the generic upload
@@ -782,6 +843,7 @@ export async function createProduct(
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/accounting");
   redirect(`/product/${encodeURIComponent(data.slug)}`);
 }
 
@@ -792,11 +854,18 @@ export async function updateProduct(
   const id = String(formData.get("id") ?? "");
   const previousSlug = String(formData.get("previousSlug") ?? "");
   const { values, fieldErrors } = readProductFields(formData);
+  const finances = readFinanceFields(formData, values.status, values.listing_kind);
   const imageFiles = readProductImageFiles(formData);
   const deletedImages = readDeletedImageIds(formData);
+  // The stock the form was loaded with. See the stock check below.
+  const loadedStockValue = String(formData.get("loadedStockQuantity") ?? "").trim();
 
   if (imageFiles.error || deletedImages.error) {
     fieldErrors.images = imageFiles.error || deletedImages.error;
+  }
+
+  if (finances.error) {
+    fieldErrors.finances = finances.error;
   }
 
   if (!uuidPattern.test(id)) {
@@ -818,7 +887,9 @@ export async function updateProduct(
   }
 
   // The current published_at is needed to decide whether this save is the first transition
-  // into `available`. Fetched alongside the images rather than in a separate round trip.
+  // into `available`; the current status and kind decide how a used item's sale is written;
+  // the current stock guards against overwriting a sale (below). Fetched alongside the images
+  // rather than in a separate round trip.
   const [
     { data: currentImages, error: currentImagesError },
     { data: currentProduct, error: currentProductError },
@@ -830,7 +901,7 @@ export async function updateProduct(
       .order("sort_order"),
     authorization.supabase
       .from("products")
-      .select("published_at")
+      .select("published_at, status, listing_kind, stock_quantity")
       .eq("id", id)
       .maybeSingle(),
   ]);
@@ -855,6 +926,33 @@ export async function updateProduct(
     return {
       status: "error",
       message: "პროდუქტი ვერ მოიძებნა ან მისი შეცვლის უფლება არ გაქვთ.",
+    };
+  }
+
+  // Lost-update guard. The form writes stock_quantity back as a plain number, but a sale
+  // recorded from the product page changes stock while this form may already be open in
+  // another tab. Saving it would silently put the sold units back on the shelf. If the stock
+  // moved since the form was loaded, refuse and ask for a reload instead of guessing which
+  // number is right.
+  if (
+    loadedStockValue !== "" &&
+    currentProduct.listing_kind === "new_stocked" &&
+    String(currentProduct.stock_quantity ?? "") !== loadedStockValue
+  ) {
+    return {
+      status: "error",
+      message: `მარაგი შეიცვალა ფორმის გახსნის შემდეგ (ახლა: ${currentProduct.stock_quantity ?? 0}) — სავარაუდოდ დაფიქსირდა გაყიდვა. განაახლეთ გვერდი და თავიდან შეიტანეთ ცვლილებები.`,
+      fieldErrors: { stockQuantity: "მარაგი სხვაგან შეიცვალა. განაახლეთ გვერდი." },
+    };
+  }
+
+  const usedSaleDate = resolveUsedSaleDate(finances.values, currentProduct.status);
+
+  if (usedSaleDate.error) {
+    return {
+      status: "error",
+      message: "შეამოწმეთ შევსებული ველები.",
+      fieldErrors: { finances: usedSaleDate.error },
     };
   }
 
@@ -1093,6 +1191,29 @@ export async function updateProduct(
     };
   }
 
+  const financeError =
+    (await writePurchasePrice(
+      authorization.supabase,
+      id,
+      finances.values.purchasePrice,
+    )) ??
+    (await syncUsedSale(authorization.supabase, {
+      productId: id,
+      listingKind: values.listing_kind,
+      previousKind: currentProduct.listing_kind,
+      listPrice: values.price,
+      input: finances.values,
+      soldOn: usedSaleDate.soldOn,
+    }));
+
+  if (financeError) {
+    return {
+      status: "error",
+      message: "პროდუქტი განახლდა, მაგრამ ფინანსური მონაცემები ვერ შეინახა.",
+      fieldErrors: { finances: "ფინანსური მონაცემების შენახვა ვერ დასრულდა." },
+    };
+  }
+
   if (imagesToDelete.length > 0) {
     const { error: deleteImagesError } = await authorization.supabase
       .from("product_images")
@@ -1119,6 +1240,7 @@ export async function updateProduct(
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/accounting");
   revalidatePath(`/product/${previousSlug}`);
   revalidatePath(`/product/${data.slug}`);
   redirect(`/product/${encodeURIComponent(data.slug)}`);
@@ -1165,7 +1287,9 @@ export async function deleteProduct(
   if (error) {
     return {
       status: "error",
-      message: getDatabaseErrorMessage(error.code),
+      // The message names the violated constraint; without it a product that has recorded
+      // sales would be told its catalog no longer exists.
+      message: getDatabaseErrorMessage(error.code, error.message),
     };
   }
 
@@ -1183,6 +1307,7 @@ export async function deleteProduct(
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/accounting");
 
   if (redirectAfterDelete) {
     redirect("/dashboard");

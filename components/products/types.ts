@@ -105,8 +105,38 @@ export type Product = {
   // Tri-state on purpose: null is "not specified", which is every product saved before the
   // column existed. See the has_storage comment in the storefront's 03_products.sql.
   hasStorage: boolean | null;
+  // Internal figures from product_finances and product_sales. Staff-only: neither table has
+  // an anon grant, so this never reaches the storefront. See the storefront's
+  // schemas/10_product_finances.sql.
+  finances: ProductFinances;
+  // Newest first. A used item has at most one; a new item one per sale.
+  sales: ProductSale[];
   createdAt: string;
   updatedAt: string;
+};
+
+// Null when nothing was recorded — which is every product that existed before the table did.
+// Null is "unknown", never 0: accounting must not count a missing purchase price as a free
+// item.
+export type ProductFinances = {
+  // Per unit.
+  purchasePrice: number | null;
+};
+
+export type ProductSale = {
+  id: string;
+  quantity: number;
+  // What the buyer paid for all units together. Can differ from price × quantity after
+  // bargaining.
+  totalPrice: number;
+  // Snapshots taken when the sale was recorded, so later cost or price changes do not
+  // rewrite it.
+  unitCost: number | null;
+  listUnitPrice: number;
+  // "YYYY-MM-DD", a calendar day in Tbilisi.
+  soldOn: string;
+  note: string | null;
+  createdAt: string;
 };
 
 // The three attribute vocabularies, keyed the same way in the form's selection state and in

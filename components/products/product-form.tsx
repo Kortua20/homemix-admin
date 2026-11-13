@@ -13,6 +13,7 @@ import { JumpLink } from "@/components/products/jump-link";
 import { ProductAiAssist } from "@/components/products/product-ai-assist";
 import { ProductAttributeFields } from "@/components/products/product-attribute-fields";
 import { ProductFeatureFields } from "@/components/products/product-feature-fields";
+import { ProductFinanceFields } from "@/components/products/product-finance-fields";
 import {
   ProductConditionFields,
   type AnchorablePhoto,
@@ -150,6 +151,11 @@ export function ProductForm({
     product?.listingKind ?? "used_unique",
   );
   const isUsed = listingKind === "used_unique";
+  // Controlled for the same reason as listingKind: it decides whether the sale fields
+  // render, and the server builds the sale payload from this same value.
+  const [status, setStatus] = useState<ProductStatus>(
+    product?.status ?? "draft",
+  );
   const cancelHref =
     mode === "edit" && product ? `/product/${product.slug}` : "/dashboard";
 
@@ -204,6 +210,7 @@ export function ProductForm({
       label: "მდგომარეობის აღწერა",
     },
     { key: "stockQuantity", id: "product-stock-quantity", label: "მარაგი" },
+    { key: "finances", id: "product-purchase-price", label: "შიდა ფინანსები" },
     { key: "dimensions", id: "product-width", label: "ზომები" },
     { key: "features", id: "product-is-foldable", label: "გაშლა და სათავსო" },
     { key: "description", id: "product-description", label: "აღწერა" },
@@ -370,6 +377,13 @@ export function ProductForm({
         <>
           <input type="hidden" name="id" value={product.id} />
           <input type="hidden" name="previousSlug" value={product.slug} />
+          {/* The stock as loaded, so updateProduct can refuse to overwrite a sale recorded
+              while this form was open. */}
+          <input
+            type="hidden"
+            name="loadedStockQuantity"
+            value={product.stockQuantity ?? ""}
+          />
         </>
       )}
 
@@ -658,7 +672,8 @@ export function ProductForm({
           <select
             id="product-status"
             name="productStatus"
-            defaultValue={product?.status ?? "draft"}
+            value={status}
+            onChange={(event) => setStatus(event.target.value as ProductStatus)}
             required
             aria-invalid={Boolean(state.fieldErrors?.productStatus)}
             aria-describedby={
@@ -783,11 +798,25 @@ export function ProductForm({
                 id="product-stock-quantity-help"
                 className="text-xs leading-5 text-quiet-ink"
               >
-                ახალი პროდუქტის ხელმისაწვდომი რაოდენობა.
+                ხელმისაწვდომი რაოდენობა — ჩანს საიტზე. გაყიდვის დაფიქსირებისას
+                ავტომატურად მცირდება. ამოწურული მარაგის შევსებისას სტატუსიც
+                „ხელმისაწვდომი“ გახადეთ.
               </p>
             )}
           </div>
         )}
+
+        {/* Right after the status/condition block rather than further down: choosing
+            „გაყიდული“ is what reveals the sale fields, so they appear close to where that
+            choice was made. Not wedged between status and grade, which share a grid row. */}
+        <ProductFinanceFields
+          finances={product?.finances}
+          sale={product?.sales[0]}
+          listingKind={listingKind}
+          status={status}
+          savedStatus={product?.status}
+          serverError={state.fieldErrors?.finances}
+        />
 
         {/* Dimensions sit outside the isUsed branch: a new chair has a seat height too.
             Every field is optional — blank writes NULL, which the CHECK constraints treat

@@ -46,10 +46,10 @@ export function ProductsDashboard({
   return (
     <section className="px-5 pb-28 pt-4 lg:px-8 lg:pb-16 lg:pt-16 xl:px-16">
       <div className="hidden lg:block">
-        <h1 className="text-5xl font-bold leading-[1.1] tracking-[-0.02em]">
+        <h1 className="text-5xl font-bold leading-tight tracking-[-0.02em]">
           პროდუქტები
         </h1>
-        <p className="mt-2 text-base leading-relaxed text-quiet-ink">
+        <p className="mt-4 text-base leading-relaxed text-quiet-ink">
           მართეთ პროდუქტები, ფასები და მათი დეტალები.
         </p>
       </div>

@@ -54,6 +54,42 @@ test("'იგივე, რაც ფასი' records a sale at the list price
   expect(await catalog.salesOf(table.id)).toMatchObject([{ total_price: 420 }]);
 });
 
+test("the product page links straight to a missing purchase or sale price", async ({
+  page,
+  catalog,
+}) => {
+  // An item sold before sales were recorded: no purchase price, no sale.
+  const table = await catalog.createUsedProduct({ status: "sold", purchasePrice: null, price: 400 });
+  const finances = page.getByRole("region", { name: "შიდა ფინანსები" });
+
+  // Purchase price: "დამატება" lands on the field, focused and ready to type into.
+  await page.goto(`/product/${table.slug}`);
+  await finances.getByRole("link", { name: "შესყიდვის ფასის დამატება" }).click();
+  await page.waitForURL(`**/product/${table.slug}/edit#product-purchase-price`);
+  await expect(page.getByLabel("შესყიდვის ფასი")).toBeFocused();
+
+  // Sale price: the notice's link lands on the sale field the same way.
+  await page.goto(`/product/${table.slug}`);
+  await expect(finances).toContainText("გაყიდვის ფასი არ არის დაფიქსირებული");
+  await finances.getByRole("link", { name: "გაყიდვის ფასის დამატება" }).click();
+  await page.waitForURL(`**/product/${table.slug}/edit#product-sale-price`);
+  const salePrice = page.getByLabel("გაყიდვის ფასი (ფაქტიური)");
+  await expect(salePrice).toBeFocused();
+
+  // Filling both from there records the sale, and the notice goes away.
+  await page.getByLabel("შესყიდვის ფასი").fill("250");
+  await salePrice.fill("380");
+  await page.getByLabel("გაყიდვის თარიღი").fill("2026-11-01");
+  await page.getByRole("button", { name: "ცვლილებების შენახვა" }).click();
+  await page.waitForURL(`**/product/${table.slug}`);
+
+  await expect(finances).not.toContainText("გაყიდვის ფასი არ არის დაფიქსირებული");
+  await expect(finances.getByRole("link", { name: /დამატება/ })).toHaveCount(0);
+  expect(await catalog.salesOf(table.id)).toEqual([
+    { quantity: 1, total_price: 380, unit_cost: 250, list_unit_price: 400 },
+  ]);
+});
+
 test("an edit form left open cannot overwrite a sale made meanwhile", async ({
   page,
   catalog,

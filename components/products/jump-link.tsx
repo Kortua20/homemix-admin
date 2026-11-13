@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 // An in-form link that scrolls a field into view and moves focus to it.
 //
 // A real anchor, not a button: it works before hydration, and the browser's own focus
@@ -30,4 +32,28 @@ export function JumpLink({
       {children}
     </a>
   );
+}
+
+// The cross-page counterpart: a link to `/product/<slug>/edit#product-purchase-price` lands
+// on that field the same way JumpLink does — centred and focused, ready to type into — rather
+// than the browser's default of flush against the top edge, under the sticky mobile header,
+// with focus left on the page.
+//
+// An effect because it synchronises with the browser (the URL hash and DOM focus), once, on
+// mount. Deferred a frame so it runs after the router's own hash scroll instead of losing to
+// it.
+export function useFocusHashTarget() {
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id) return;
+
+    const frame = requestAnimationFrame(() => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      target.scrollIntoView({ block: "center" });
+      target.focus({ preventScroll: true });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, []);
 }

@@ -9,7 +9,7 @@ import {
   updateProduct,
   type ProductActionState,
 } from "@/app/product/actions";
-import { JumpLink } from "@/components/products/jump-link";
+import { JumpLink, useFocusHashTarget } from "@/components/products/jump-link";
 import { ProductAiAssist } from "@/components/products/product-ai-assist";
 import { ProductAttributeFields } from "@/components/products/product-attribute-fields";
 import { ProductFeatureFields } from "@/components/products/product-feature-fields";
@@ -182,6 +182,10 @@ export function ProductForm({
   //
   // `pending` already describes the in-flight window, so there is no second flag to keep in
   // step with it and no effect needed to clear one.
+  // Links from the product page ("დამატება" next to a missing purchase price) arrive with the
+  // field's id in the hash; land on it ready to type into.
+  useFocusHashTarget();
+
   useUnsavedChangesWarning(
     dirty && !pending,
     "შენახვის გარეშე გასვლა? შეტანილი ცვლილებები დაიკარგება.",

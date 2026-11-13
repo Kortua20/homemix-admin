@@ -76,7 +76,7 @@ export default async function NewProductPage() {
         <h1 className="text-3xl font-bold tracking-[-0.02em] lg:text-5xl">
           პროდუქტის შექმნა
         </h1>
-        <p className="mt-2 text-sm leading-6 text-quiet-ink lg:text-base">
+        <p className="mt-3 text-sm leading-6 text-quiet-ink lg:mt-4 lg:text-base">
           დაიწყეთ ფოტოებით — AI დაგეხმარებათ აღწერის, ფერისა და მასალის
           შევსებაში. URL-ის სლაგი დასახელებიდან ავტომატურად შეიქმნება.
         </p>

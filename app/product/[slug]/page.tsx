@@ -27,6 +27,10 @@ type ProductPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+// Same look as the nudge links in the product form (components/products/product-form.tsx).
+const NUDGE_LINK_CLASS =
+  "font-semibold text-walnut underline underline-offset-2 hover:no-underline";
+
 // Staff-only figures from product_finances and product_sales. A missing figure is shown as
 // "—", never as 0, and profit is totalled only over sales whose cost is known — the count of
 // those that are not is shown beside it, as on the accounting page.
@@ -41,9 +45,28 @@ function FinanceSection({ product }: { product: Product }) {
     0,
   );
   const uncosted = sales.length - costed.length;
+  // Straight to the field on the edit page, where useFocusHashTarget centres and focuses it.
+  const editField = (fieldId: string) => `/product/${product.slug}/edit#${fieldId}`;
 
-  const rows: [string, string][] = [
-    [isStocked ? "შესყიდვის ფასი (ერთ.)" : "შესყიდვის ფასი", formatMoney(finances.purchasePrice)],
+  const rows: [string, React.ReactNode][] = [
+    [
+      isStocked ? "შესყიდვის ფასი (ერთ.)" : "შესყიდვის ფასი",
+      // Missing is the common case for everything that existed before this field did, and it
+      // is what keeps profit unknown — so the fix is one click away, not a hunt through the
+      // edit form.
+      finances.purchasePrice === null ? (
+        <span className="inline-flex items-center gap-2">
+          <span className="text-soft-brown" aria-hidden="true">
+            —
+          </span>
+          <Link href={editField("product-purchase-price")} className={NUDGE_LINK_CLASS}>
+            <span className="sr-only">შესყიდვის ფასის </span>დამატება
+          </Link>
+        </span>
+      ) : (
+        formatMoney(finances.purchasePrice)
+      ),
+    ],
     ...(sales.length > 0
       ? ([
           ["გაყიდულია", `${units} ცალი`],
@@ -73,7 +96,7 @@ function FinanceSection({ product }: { product: Product }) {
       <dl className="mt-5 divide-y divide-hairline">
         {rows.map(([label, value]) => (
           <div
-            key={label}
+            key={String(label)}
             className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
           >
             <dt className="text-sm text-quiet-ink">{label}</dt>
@@ -89,7 +112,13 @@ function FinanceSection({ product }: { product: Product }) {
       {!isStocked && product.status === "sold" && sales.length === 0 ? (
         <p className="mt-4 rounded-xl bg-status-reserved-surface px-4 py-3 text-sm leading-6 text-status-reserved-ink">
           გაყიდულად არის მონიშნული, მაგრამ გაყიდვის ფასი არ არის დაფიქსირებული —
-          დაამატეთ რედაქტირების გვერდიდან, რომ ბუღალტერიაში ჩაითვალოს.
+          დაამატეთ, რომ ბუღალტერიაში ჩაითვალოს.{" "}
+          <Link
+            href={editField("product-sale-price")}
+            className="font-semibold underline underline-offset-2 hover:no-underline"
+          >
+            გაყიდვის ფასის დამატება
+          </Link>
         </p>
       ) : null}
 

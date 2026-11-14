@@ -13,7 +13,7 @@ test("marking a used item sold records its bargained price; unmarking removes it
   await page.getByLabel("სტატუსი").selectOption("sold");
 
   // The sale fields appear only now, dated today, with no price filled in for us.
-  const salePrice = page.getByLabel("გაყიდვის ფასი (ფაქტიური)");
+  const salePrice = page.getByLabel(/^გაყიდვის ფასი \(ფაქტიური\)/);
   await expect(salePrice).toHaveValue("");
   await expect(page.getByLabel("გაყიდვის თარიღი")).not.toHaveValue("");
 
@@ -47,7 +47,7 @@ test("'იგივე, რაც ფასი' records a sale at the list price
   await page.goto(`/product/${table.slug}/edit`);
   await page.getByLabel("სტატუსი").selectOption("sold");
   await page.getByRole("button", { name: "იგივე, რაც ფასი" }).click();
-  await expect(page.getByLabel("გაყიდვის ფასი (ფაქტიური)")).toHaveValue("420");
+  await expect(page.getByLabel(/^გაყიდვის ფასი \(ფაქტიური\)/)).toHaveValue("420");
 
   await page.getByRole("button", { name: "ცვლილებების შენახვა" }).click();
   await page.waitForURL(`**/product/${table.slug}`);
@@ -73,7 +73,7 @@ test("the product page links straight to a missing purchase or sale price", asyn
   await expect(finances).toContainText("გაყიდვის ფასი არ არის დაფიქსირებული");
   await finances.getByRole("link", { name: "გაყიდვის ფასის დამატება" }).click();
   await page.waitForURL(`**/product/${table.slug}/edit#product-sale-price`);
-  const salePrice = page.getByLabel("გაყიდვის ფასი (ფაქტიური)");
+  const salePrice = page.getByLabel(/^გაყიდვის ფასი \(ფაქტიური\)/);
   await expect(salePrice).toBeFocused();
 
   // Filling both from there records the sale, and the notice goes away.
@@ -104,4 +104,63 @@ test("an edit form left open cannot overwrite a sale made meanwhile", async ({
 
   await expect(page.getByRole("alert").filter({ hasText: "მარაგი შეიცვალა" })).toBeVisible();
   expect(await catalog.stockOf(chair.id)).toMatchObject({ stock: 3 });
+});
+
+test("marking an item sold without its price is stopped before saving", async ({
+  page,
+  catalog,
+}) => {
+  const table = await catalog.createUsedProduct({ price: 400 });
+
+  await page.goto(`/product/${table.slug}/edit`);
+  await page.getByLabel("სტატუსი").selectOption("sold");
+  const salePrice = page.getByLabel(/^გაყიდვის ფასი \(ფაქტიური\)/);
+  await expect(salePrice).toHaveAttribute("required", "");
+
+  await page.getByRole("button", { name: "ცვლილებების შენახვა" }).click();
+
+  // The browser stops the submit on the empty required field, so nothing is saved: no
+  // "sold" item that the books cannot see.
+  expect(await salePrice.evaluate((input: HTMLInputElement) => input.validity.valueMissing)).toBe(true);
+  await expect(page).toHaveURL(new RegExp(`/product/${table.slug}/edit$`));
+  expect(await catalog.stockOf(table.id)).toMatchObject({ status: "available" });
+
+  // The server holds the same rule when the browser check is skipped (an old tab, a script).
+  await salePrice.evaluate((input: HTMLInputElement) => input.removeAttribute("required"));
+  await page.getByRole("button", { name: "ცვლილებების შენახვა" }).click();
+  await expect(page.getByText("გაყიდულად მონიშვნისას მიუთითეთ გაყიდვის ფასი (ფაქტიური).").first()).toBeVisible();
+  expect(await catalog.stockOf(table.id)).toMatchObject({ status: "available" });
+  expect(await catalog.salesOf(table.id)).toEqual([]);
+});
+
+test("a used item is sold from its product page, and the sale can be undone there", async ({
+  page,
+  catalog,
+}) => {
+  const table = await catalog.createUsedProduct({ price: 400, purchasePrice: 250 });
+  const finances = page.getByRole("region", { name: "შიდა ფინანსები" });
+
+  await page.goto(`/product/${table.slug}`);
+  await expect(finances.getByLabel("რაოდენობა")).toHaveCount(0);
+  await finances.getByLabel("გაყიდვის ფასი (ფაქტიური)").fill("350");
+  await expect(finances.getByText(/მოგება/)).toContainText("100.00 ₾");
+  await finances.getByRole("button", { name: "გაყიდვის დაფიქსირება" }).click();
+
+  // One step: marked sold, sale recorded, and nothing left to sell.
+  await expect(finances.getByText(/1 ცალი · 350\.00 ₾/)).toBeVisible();
+  await expect(finances.getByRole("button", { name: "გაყიდვის დაფიქსირება" })).toHaveCount(0);
+  expect(await catalog.stockOf(table.id)).toMatchObject({ status: "sold" });
+  expect(await catalog.salesOf(table.id)).toEqual([
+    { quantity: 1, total_price: 350, unit_cost: 250, list_unit_price: 400 },
+  ]);
+
+  // Undo from the same page.
+  await finances.getByRole("button", { name: /^გაყიდვის გაუქმება:/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("ნივთი ისევ ხელმისაწვდომი გახდება");
+  await dialog.getByRole("button", { name: "წაშლა" }).click();
+
+  await expect(finances.getByRole("button", { name: "გაყიდვის დაფიქსირება" })).toBeVisible();
+  expect(await catalog.stockOf(table.id)).toMatchObject({ status: "available" });
+  expect(await catalog.salesOf(table.id)).toEqual([]);
 });

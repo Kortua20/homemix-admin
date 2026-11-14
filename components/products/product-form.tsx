@@ -156,6 +156,24 @@ export function ProductForm({
   const [status, setStatus] = useState<ProductStatus>(
     product?.status ?? "draft",
   );
+  // A new item is sold from its product page ("გაყიდვის დაფიქსირება"), which records the sale
+  // and takes the units off the stock; it becomes `sold` by itself when the stock runs out.
+  // Offering `sold` here would skip both — the server refuses it too (statusTransitionError).
+  // A sold-out item keeps the option, so its current status still shows.
+  const statusOptions =
+    listingKind === "new_stocked" && product?.status !== "sold"
+      ? STATUS_OPTIONS.filter((value) => value !== "sold")
+      : STATUS_OPTIONS;
+
+  // Switching to a new item while `sold` is selected would leave the select showing a status
+  // that is no longer an option; fall back to available instead.
+  function handleListingKindChange(nextKind: ListingKind) {
+    setListingKind(nextKind);
+    if (nextKind === "new_stocked" && status === "sold" && product?.status !== "sold") {
+      setStatus("available");
+    }
+  }
+
   const cancelHref =
     mode === "edit" && product ? `/product/${product.slug}` : "/dashboard";
 
@@ -637,9 +655,7 @@ export function ProductForm({
             id="product-listing-kind"
             name="listingKind"
             value={listingKind}
-            onChange={(event) =>
-              setListingKind(event.target.value as ListingKind)
-            }
+            onChange={(event) => handleListingKindChange(event.target.value as ListingKind)}
             required
             aria-invalid={Boolean(state.fieldErrors?.listingKind)}
             aria-describedby={
@@ -687,7 +703,7 @@ export function ProductForm({
             }
             className="h-12 w-full rounded-lg border border-clay-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-walnut/30 aria-invalid:border-destructive aria-invalid:bg-[#fffafa] aria-invalid:focus-visible:ring-destructive/20"
           >
-            {STATUS_OPTIONS.map((value) => (
+            {statusOptions.map((value) => (
               <option key={value} value={value}>
                 {PRODUCT_STATUS_LABELS[value]}
               </option>

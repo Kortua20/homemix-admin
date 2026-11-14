@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 // The undo button posts to a server action; the action itself is tested in
@@ -21,12 +22,12 @@ const sales: ProductSale[] = [
 
 describe("ProductSalesHistory", () => {
   it("says when nothing has sold yet", () => {
-    render(<ProductSalesHistory sales={[]} slug="chair" canUndo />);
+    render(<ProductSalesHistory sales={[]} slug="chair" listingKind="new_stocked" />);
     expect(screen.getByText("გაყიდვა ჯერ არ დაფიქსირებულა.")).toBeInTheDocument();
   });
 
   it("lists each sale with its total, list value and profit", () => {
-    render(<ProductSalesHistory sales={sales} slug="chair" canUndo={false} />);
+    render(<ProductSalesHistory sales={sales} slug="chair" listingKind="new_stocked" />);
     expect(screen.getByText("11.11.2026 · 2 ცალი · 90.00 ₾")).toBeInTheDocument();
     expect(screen.getByText(/საიტის ფასით 120.00 ₾/)).toBeInTheDocument();
     expect(screen.getByText("-10.00 ₾")).toHaveClass("text-destructive-ink");
@@ -34,18 +35,25 @@ describe("ProductSalesHistory", () => {
   });
 
   it("shows an unknown profit as a dash", () => {
-    render(<ProductSalesHistory sales={[sales[1]]} slug="chair" canUndo={false} />);
+    render(<ProductSalesHistory sales={[sales[1]]} slug="chair" listingKind="new_stocked" />);
     expect(screen.getByText(/მოგება/)).toHaveTextContent("მოგება —");
   });
 
-  it("offers undo, naming the sale, only for stocked items", () => {
-    const { rerender } = render(<ProductSalesHistory sales={sales} slug="chair" canUndo />);
+  it("offers undo for every sale, naming the sale it undoes", () => {
+    render(<ProductSalesHistory sales={sales} slug="chair" listingKind="new_stocked" />);
     expect(
       screen.getByRole("button", { name: "გაყიდვის გაუქმება: 11.11.2026 · 2 ცალი · 90.00 ₾" }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /გაყიდვის გაუქმება/ })).toHaveLength(2);
+  });
 
-    rerender(<ProductSalesHistory sales={sales} slug="chair" canUndo={false} />);
-    expect(screen.queryByRole("button", { name: /გაყიდვის გაუქმება/ })).not.toBeInTheDocument();
+  it.each([
+    ["new_stocked", "ნივთები მარაგში დაბრუნდება"],
+    ["used_unique", "ნივთი ისევ ხელმისაწვდომი გახდება"],
+  ] as const)("tells staff what undo will do for a %s item", async (kind, wording) => {
+    const user = userEvent.setup();
+    render(<ProductSalesHistory sales={[sales[0]]} slug="chair" listingKind={kind} />);
+    await user.click(screen.getByRole("button", { name: /გაყიდვის გაუქმება/ }));
+    expect(await screen.findByRole("dialog")).toHaveTextContent(wording);
   });
 });

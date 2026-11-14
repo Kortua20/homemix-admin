@@ -1,21 +1,21 @@
 import { DeleteSaleButton } from "@/components/products/delete-sale-button";
-import type { ProductSale } from "@/components/products/types";
+import type { ListingKind, ProductSale } from "@/components/products/types";
 import { formatMoney } from "@/lib/accounting/format";
 import { formatIsoDate } from "@/lib/business-date";
 
 // Every recorded sale of one product, newest first. Profit uses the unit cost snapshotted at
 // the time of each sale, so it matches the accounting page exactly.
 //
-// Undo is offered only for stocked items, whose sales are recorded here and reversed by
-// delete_product_sale. A used item's sale follows its status in the product form.
+// Every sale can be undone here (delete_product_sale): a new item's units go back on the
+// shelf, a used item becomes available again.
 export function ProductSalesHistory({
   sales,
   slug,
-  canUndo,
+  listingKind,
 }: {
   sales: ProductSale[];
   slug: string;
-  canUndo: boolean;
+  listingKind: ListingKind;
 }) {
   if (sales.length === 0) {
     return <p className="text-sm text-quiet-ink">გაყიდვა ჯერ არ დაფიქსირებულა.</p>;
@@ -45,9 +45,12 @@ export function ProductSalesHistory({
                 <p className="mt-0.5 break-words text-xs text-quiet-ink">{sale.note}</p>
               ) : null}
             </div>
-            {canUndo ? (
-              <DeleteSaleButton saleId={sale.id} slug={slug} summary={summary} />
-            ) : null}
+            <DeleteSaleButton
+              saleId={sale.id}
+              slug={slug}
+              summary={summary}
+              listingKind={listingKind}
+            />
           </li>
         );
       })}

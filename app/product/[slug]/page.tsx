@@ -122,13 +122,18 @@ function FinanceSection({ product }: { product: Product }) {
         </p>
       ) : null}
 
-      {isStocked ? (
+      {/* Selling happens here, for both kinds: a new item while it has stock, a used item
+          until it is sold. Archived listings are mistakes, not stock. An item already sold
+          has nothing left to sell — a used one sold before sales were recorded gets its price
+          through the notice's link above instead. */}
+      {product.status !== "archived" && (isStocked || product.status !== "sold") ? (
         <div className="mt-6 border-t border-hairline pt-5">
           <h3 className="text-base font-semibold">გაყიდვის დაფიქსირება</h3>
           <div className="mt-4">
             <RecordSaleForm
               productId={product.id}
               slug={product.slug}
+              listingKind={product.listingKind}
               stock={product.stockQuantity ?? 0}
               listPrice={product.price}
               purchasePrice={finances.purchasePrice}
@@ -144,7 +149,7 @@ function FinanceSection({ product }: { product: Product }) {
             <ProductSalesHistory
               sales={sales}
               slug={product.slug}
-              canUndo={isStocked}
+              listingKind={product.listingKind}
             />
           </div>
         </div>

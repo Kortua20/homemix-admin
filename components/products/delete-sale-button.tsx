@@ -4,6 +4,7 @@ import { Undo2 } from "lucide-react";
 import { useActionState, useState } from "react";
 
 import { deleteProductSale, type SaleActionState } from "@/app/product/sale-actions";
+import type { ListingKind } from "@/components/products/types";
 import {
   ConfirmDeleteActions,
   ConfirmDeleteDialog,
@@ -11,16 +12,18 @@ import {
 
 const initialState: SaleActionState = { status: "idle", message: "" };
 
-// Undoes a stocked sale entered by mistake: delete_product_sale removes the row and puts the
-// units back on the stock in one transaction. Same confirm dialog as product delete, because
+// Undoes a sale entered by mistake: delete_product_sale removes the row and, in the same
+// transaction, puts a new item's units back on the stock or makes a used item available again. Same confirm dialog as product delete, because
 // it removes a record from the books.
 export function DeleteSaleButton({
   saleId,
   slug,
   summary,
+  listingKind,
 }: {
   saleId: string;
   slug: string;
+  listingKind: ListingKind;
   // e.g. "11.11.2026 · 2 ცალი · 90.00 ₾", named in the dialog so the right row is confirmed.
   summary: string;
 }) {
@@ -42,7 +45,11 @@ export function DeleteSaleButton({
         open={open}
         onOpenChange={setOpen}
         title="გაყიდვის გაუქმება"
-        description="ჩანაწერი წაიშლება ბუღალტერიიდან და ნივთები მარაგში დაბრუნდება."
+        description={
+          listingKind === "used_unique"
+            ? "ჩანაწერი წაიშლება ბუღალტერიიდან და ნივთი ისევ ხელმისაწვდომი გახდება."
+            : "ჩანაწერი წაიშლება ბუღალტერიიდან და ნივთები მარაგში დაბრუნდება."
+        }
         subjectLabel="გასაუქმებელი გაყიდვა"
         subjectName={summary}
         pending={pending}

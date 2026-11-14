@@ -5,21 +5,28 @@ import { startTransition, useActionState, useState } from "react";
 
 import {
   recordProductSale,
+  recordUsedSale,
   type SaleActionState,
 } from "@/app/product/sale-actions";
 import { FieldError } from "@/components/products/field-error";
+import type { ListingKind } from "@/components/products/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatMoney } from "@/lib/accounting/format";
 import { todayInTbilisi } from "@/lib/business-date";
 
-// Records one sale of a new (stocked) item: how many units, what the buyer paid for them in
-// total, and when. The server action calls record_product_sale, which takes the units off
-// the stock in the same transaction, so this never has to touch the stock field itself.
+// Records a sale from the product page — what the buyer actually paid, and when.
 //
-// The total is what is entered, not a unit price, because a bargain is agreed on the total
-// ("two for 90"). The unit price and the profit are shown as a preview so a typo — 900 for
+//   * A NEW item: how many units and the total for all of them. recordProductSale calls
+//     record_product_sale, which takes the units off the stock in the same transaction.
+//     The total is entered rather than a unit price because a bargain is agreed on the
+//     total ("two for 90").
+//   * A USED item: one piece, so no quantity. recordUsedSale calls record_used_sale, which
+//     marks it sold in the same transaction — the consultant never needs the edit form to
+//     sell something.
+//
+// The profit (and, for several units, the unit price) is previewed so a typo — 900 for
 // 90 — is visible before it is saved.
 
 const initialState: SaleActionState = { status: "idle", message: "" };
@@ -30,6 +37,8 @@ const NUDGE_LINK_CLASS =
 type RecordSaleFormProps = {
   productId: string;
   slug: string;
+  listingKind: ListingKind;
+  // Units on the shelf. Ignored for a used item, which is always one piece.
   stock: number;
   listPrice: number;
   purchasePrice: number | null;
@@ -38,12 +47,15 @@ type RecordSaleFormProps = {
 export function RecordSaleForm({
   productId,
   slug,
+  listingKind,
   stock,
   listPrice,
   purchasePrice,
 }: RecordSaleFormProps) {
+  const isUsed = listingKind === "used_unique";
+  // The kind is fixed for the life of the page, so the action never changes under the hook.
   const [state, formAction, pending] = useActionState(
-    recordProductSale,
+    isUsed ? recordUsedSale : recordProductSale,
     initialState,
   );
   const [quantity, setQuantity] = useState("1");
@@ -64,7 +76,7 @@ export function RecordSaleForm({
     }
   }
 
-  const quantityNumber = Number(quantity);
+  const quantityNumber = isUsed ? 1 : Number(quantity);
   const totalNumber = totalPrice === "" ? null : Number(totalPrice);
   const validQuantity = Number.isInteger(quantityNumber) && quantityNumber >= 1;
   const unitPrice =
@@ -90,7 +102,7 @@ export function RecordSaleForm({
     startTransition(() => formAction(formData));
   }
 
-  if (stock <= 0) {
+  if (!isUsed && stock <= 0) {
     return (
       <p className="rounded-xl bg-soft-linen px-4 py-3 text-sm text-quiet-ink">
         მარაგი ამოიწურა. ახალი გაყიდვის დასაფიქსირებლად ჯერ შეავსეთ მარაგი
@@ -106,33 +118,37 @@ export function RecordSaleForm({
 
       {/* One column at lg, where this sits in the product page's narrow side column. */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-        <div className="grid gap-1.5">
-          <Label htmlFor="sale-quantity">რაოდენობა</Label>
-          <Input
-            id="sale-quantity"
-            name="quantity"
-            type="number"
-            min="1"
-            max={stock}
-            step="1"
-            required
-            value={quantity}
-            onChange={(event) => setQuantity(event.target.value)}
-            aria-invalid={Boolean(state.fieldErrors?.quantity)}
-            aria-describedby="sale-quantity-help"
-            className="h-12 border-clay-border bg-white"
-          />
-          {state.fieldErrors?.quantity ? (
-            <FieldError id="sale-quantity-help">{state.fieldErrors.quantity}</FieldError>
-          ) : (
-            <p id="sale-quantity-help" className="text-xs text-quiet-ink">
-              მარაგშია: {stock} ცალი
-            </p>
-          )}
-        </div>
+        {isUsed ? null : (
+          <div className="grid gap-1.5">
+            <Label htmlFor="sale-quantity">რაოდენობა</Label>
+            <Input
+              id="sale-quantity"
+              name="quantity"
+              type="number"
+              min="1"
+              max={stock}
+              step="1"
+              required
+              value={quantity}
+              onChange={(event) => setQuantity(event.target.value)}
+              aria-invalid={Boolean(state.fieldErrors?.quantity)}
+              aria-describedby="sale-quantity-help"
+              className="h-12 border-clay-border bg-white"
+            />
+            {state.fieldErrors?.quantity ? (
+              <FieldError id="sale-quantity-help">{state.fieldErrors.quantity}</FieldError>
+            ) : (
+              <p id="sale-quantity-help" className="text-xs text-quiet-ink">
+                მარაგშია: {stock} ცალი
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="grid gap-1.5">
-          <Label htmlFor="sale-total">გადახდილი თანხა (ჯამში)</Label>
+          <Label htmlFor="sale-total">
+            {isUsed ? "გაყიდვის ფასი (ფაქტიური)" : "გადახდილი თანხა (ჯამში)"}
+          </Label>
           <div className="relative">
             <Input
               id="sale-total"
@@ -144,7 +160,7 @@ export function RecordSaleForm({
               required
               value={totalPrice}
               onChange={(event) => setTotalPrice(event.target.value)}
-              placeholder="მაგ.: 90"
+              placeholder={isUsed ? "რამდენად გაიყიდა" : "მაგ.: 90"}
               aria-invalid={Boolean(state.fieldErrors?.totalPrice)}
               aria-describedby="sale-total-help"
               className="h-12 border-clay-border bg-white pr-10"
@@ -157,9 +173,12 @@ export function RecordSaleForm({
             <FieldError id="sale-total-help">{state.fieldErrors.totalPrice}</FieldError>
           ) : (
             <p id="sale-total-help" className="text-xs leading-5 text-quiet-ink">
-              ყველა ცალისთვის ერთად, მოლაპარაკების შემდეგ.{" "}
+              {isUsed
+                ? "რეალურად გადახდილი თანხა, მოლაპარაკების შემდეგ."
+                : "ყველა ცალისთვის ერთად, მოლაპარაკების შემდეგ."}{" "}
               <button type="button" onClick={fillListTotal} className={NUDGE_LINK_CLASS}>
-                საიტის ფასით ({formatMoney(validQuantity ? listPrice * quantityNumber : listPrice)})
+                {isUsed ? "იგივე, რაც ფასი" : "საიტის ფასით"} (
+                {formatMoney(validQuantity ? listPrice * quantityNumber : listPrice)})
               </button>
             </p>
           )}
@@ -207,8 +226,14 @@ export function RecordSaleForm({
       {/* Live preview, so a misplaced digit is caught before it reaches the books. */}
       {unitPrice !== null ? (
         <p className="rounded-xl bg-soft-linen px-4 py-3 text-sm text-quiet-ink tabular-nums" aria-live="polite">
-          ერთეულის ფასი: <span className="font-semibold text-ink">{formatMoney(unitPrice)}</span>
-          {" · "}
+          {/* A single piece's unit price is just the price typed above. */}
+          {isUsed ? null : (
+            <>
+              ერთეულის ფასი:{" "}
+              <span className="font-semibold text-ink">{formatMoney(unitPrice)}</span>
+              {" · "}
+            </>
+          )}
           მოგება:{" "}
           {profit === null ? (
             <span>უცნობია (შესყიდვის ფასი არ არის მითითებული)</span>

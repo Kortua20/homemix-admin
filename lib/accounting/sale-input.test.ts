@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   readFinanceFields,
   readOptionalMoney,
-  resolveUsedSaleDate,
+  resolveUsedSale,
+  statusTransitionError,
   validateSaleDate,
 } from "@/lib/accounting/sale-input";
 
@@ -106,35 +107,70 @@ describe("readFinanceFields", () => {
   });
 });
 
-describe("resolveUsedSaleDate", () => {
+describe("resolveUsedSale", () => {
   const sale = (totalPrice: number | null, soldOn: string | null) => ({
     purchasePrice: null,
     usedSale: { totalPrice, soldOn },
   });
 
   it("uses the entered date", () => {
-    expect(resolveUsedSaleDate(sale(100, "2026-11-01"), "available")).toEqual({
+    expect(resolveUsedSale(sale(100, "2026-11-01"), "available")).toEqual({
       soldOn: "2026-11-01",
     });
   });
 
   it("stamps today when an item is marked sold now without a date", () => {
-    expect(resolveUsedSaleDate(sale(100, null), "available")).toEqual({
-      soldOn: "2026-11-11",
-    });
-    expect(resolveUsedSaleDate(sale(100, null), null)).toEqual({ soldOn: "2026-11-11" });
+    expect(resolveUsedSale(sale(100, null), "available")).toEqual({ soldOn: "2026-11-11" });
+    expect(resolveUsedSale(sale(100, null), null)).toEqual({ soldOn: "2026-11-11" });
   });
 
-  it("refuses to guess the date of an item that was already sold", () => {
-    const result = resolveUsedSaleDate(sale(100, null), "sold");
+  it.each([
+    ["an available item", "available"],
+    ["a reserved item", "reserved"],
+    ["a draft", "draft"],
+    ["a product being created as sold", null],
+  ])("requires the sale price when %s is marked sold now", (_label, previous) => {
+    const result = resolveUsedSale(sale(null, "2026-11-11"), previous);
     expect(result.soldOn).toBeNull();
-    expect(result.error).toBeTruthy();
+    expect(result.error).toMatch(/გაყიდვის ფასი/);
   });
 
-  it("needs no date when there is no sale", () => {
-    expect(resolveUsedSaleDate(sale(null, null), "sold")).toEqual({ soldOn: null });
-    expect(resolveUsedSaleDate({ purchasePrice: 1, usedSale: null }, "sold")).toEqual({
+  it("lets an item already sold before stay without a price", () => {
+    expect(resolveUsedSale(sale(null, null), "sold")).toEqual({ soldOn: null });
+  });
+
+  it("refuses to guess the date when a price is added to an item already sold", () => {
+    const result = resolveUsedSale(sale(100, null), "sold");
+    expect(result.soldOn).toBeNull();
+    expect(result.error).toMatch(/თარიღი/);
+  });
+
+  it("has nothing to resolve when the item is not being sold", () => {
+    expect(resolveUsedSale({ purchasePrice: 1, usedSale: null }, "available")).toEqual({
       soldOn: null,
     });
+  });
+});
+
+describe("statusTransitionError", () => {
+  it("refuses marking a new item sold by hand", () => {
+    expect(statusTransitionError("new_stocked", "sold", "available")).toMatch(
+      /გაყიდვის დაფიქსირება/,
+    );
+    expect(statusTransitionError("new_stocked", "sold", null)).toBeTruthy();
+  });
+
+  it("lets a sold-out new item keep its status", () => {
+    expect(statusTransitionError("new_stocked", "sold", "sold")).toBeUndefined();
+  });
+
+  it("allows every other status for a new item", () => {
+    for (const status of ["draft", "available", "reserved", "archived"]) {
+      expect(statusTransitionError("new_stocked", status, "available")).toBeUndefined();
+    }
+  });
+
+  it("leaves used items to resolveUsedSale", () => {
+    expect(statusTransitionError("used_unique", "sold", "available")).toBeUndefined();
   });
 });

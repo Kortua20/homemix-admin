@@ -3,7 +3,7 @@
 import { Lock } from "lucide-react";
 import { useState } from "react";
 
-import { FieldError } from "@/components/products/field-error";
+import { FieldError, RequiredMark } from "@/components/products/field-error";
 import type {
   ListingKind,
   ProductFinances,
@@ -136,7 +136,12 @@ export function ProductFinanceFields({
 //
 // The sale price is never prefilled silently. "იგივე, რაც ფასი" copies the list price in one
 // click, as a visible choice, because a bargained price that was never typed in would
-// otherwise be saved as if the listing price had been paid. Leaving it blank records no sale.
+// otherwise be saved as if the listing price had been paid.
+//
+// It is REQUIRED when the item is being marked sold now: a sold item with no price leaves the
+// stock report without reaching the sales report, which reads as "nothing happened". The
+// server enforces the same rule (resolveUsedSale in lib/accounting/sale-input.ts). An item
+// that was already sold before may stay without one.
 function SaleFields({
   sale,
   wasSold,
@@ -152,6 +157,7 @@ function SaleFields({
   const [soldOn, setSoldOn] = useState(
     () => sale?.soldOn ?? (wasSold ? "" : todayInTbilisi()),
   );
+  const priceRequired = !wasSold;
 
   // Read from the form rather than passed down: the price input is uncontrolled, and what
   // matters is what it holds now, including an unsaved edit.
@@ -165,7 +171,10 @@ function SaleFields({
   return (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="product-sale-price">გაყიდვის ფასი (ფაქტიური)</Label>
+        <Label htmlFor="product-sale-price">
+          გაყიდვის ფასი (ფაქტიური)
+          {priceRequired ? <RequiredMark /> : null}
+        </Label>
         <div className="relative">
           <Input
             id="product-sale-price"
@@ -176,6 +185,7 @@ function SaleFields({
             step="0.01"
             value={salePrice}
             onChange={(event) => setSalePrice(event.target.value)}
+            required={priceRequired}
             placeholder="რამდენად გაიყიდა"
             aria-invalid={hasError}
             aria-describedby={
@@ -188,8 +198,9 @@ function SaleFields({
           </span>
         </div>
         <p id="product-sale-price-help" className="text-xs leading-5 text-quiet-ink">
-          რეალურად გადახდილი თანხა, მოლაპარაკების შემდეგ. საიტის ფასი არ
-          იცვლება.{" "}
+          {priceRequired
+            ? "სავალდებულოა გაყიდულად მონიშვნისას — რეალურად გადახდილი თანხა, მოლაპარაკების შემდეგ."
+            : "რეალურად გადახდილი თანხა, მოლაპარაკების შემდეგ."}{" "}
           <button type="button" onClick={copyListPrice} className={NUDGE_LINK_CLASS}>
             იგივე, რაც ფასი
           </button>
@@ -207,7 +218,7 @@ function SaleFields({
           value={soldOn}
           onChange={(event) => setSoldOn(event.target.value)}
           // A price without a date cannot be placed in any accounting period.
-          required={salePrice !== ""}
+          required={priceRequired || salePrice !== ""}
           aria-invalid={hasError}
           aria-describedby={
             hasError ? "product-finances-error" : "product-sold-on-help"

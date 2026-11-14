@@ -12,7 +12,8 @@ import {
 import { syncUsedSale, writePurchasePrice } from "@/lib/accounting/finance-writes";
 import {
   readFinanceFields,
-  resolveUsedSaleDate,
+  resolveUsedSale,
+  statusTransitionError,
 } from "@/lib/accounting/sale-input";
 import { isFlawSeverity, isFlawType } from "@/lib/flaw-data";
 import { deleteR2Objects, uploadProductImage } from "@/lib/r2";
@@ -695,17 +696,22 @@ export async function createProduct(
 ): Promise<ProductActionState> {
   const { values, fieldErrors } = readProductFields(formData);
   const finances = readFinanceFields(formData, values.status, values.listing_kind);
-  // A product created as `sold` (entered after the fact) has no previous status, so a blank
-  // sale date is stamped with today.
-  const usedSaleDate = resolveUsedSaleDate(finances.values, null);
+  // A product created as `sold` (entered after the fact) has no previous status: it is being
+  // marked sold now, so it needs its sale price, and a blank date is stamped with today.
+  const usedSale = resolveUsedSale(finances.values, null);
+  const statusError = statusTransitionError(values.listing_kind, values.status, null);
   const imageFiles = readProductImageFiles(formData);
 
   if (imageFiles.error) {
     fieldErrors.images = imageFiles.error;
   }
 
-  if (finances.error || usedSaleDate.error) {
-    fieldErrors.finances = finances.error || usedSaleDate.error;
+  if (finances.error || usedSale.error) {
+    fieldErrors.finances = finances.error || usedSale.error;
+  }
+
+  if (statusError) {
+    fieldErrors.productStatus = statusError;
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -754,7 +760,7 @@ export async function createProduct(
       previousKind: null,
       listPrice: values.price,
       input: finances.values,
-      soldOn: usedSaleDate.soldOn,
+      soldOn: usedSale.soldOn,
     }));
 
   if (financeError) {
@@ -946,13 +952,21 @@ export async function updateProduct(
     };
   }
 
-  const usedSaleDate = resolveUsedSaleDate(finances.values, currentProduct.status);
+  const usedSale = resolveUsedSale(finances.values, currentProduct.status);
+  const statusError = statusTransitionError(
+    values.listing_kind,
+    values.status,
+    currentProduct.status,
+  );
 
-  if (usedSaleDate.error) {
+  if (usedSale.error || statusError) {
     return {
       status: "error",
       message: "შეამოწმეთ შევსებული ველები.",
-      fieldErrors: { finances: usedSaleDate.error },
+      fieldErrors: {
+        ...(usedSale.error ? { finances: usedSale.error } : {}),
+        ...(statusError ? { productStatus: statusError } : {}),
+      },
     };
   }
 
@@ -1203,7 +1217,7 @@ export async function updateProduct(
       previousKind: currentProduct.listing_kind,
       listPrice: values.price,
       input: finances.values,
-      soldOn: usedSaleDate.soldOn,
+      soldOn: usedSale.soldOn,
     }));
 
   if (financeError) {

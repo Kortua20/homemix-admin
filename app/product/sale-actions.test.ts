@@ -17,6 +17,7 @@ vi.mock("@/lib/server", () => ({ createClient }));
 import {
   deleteProductSale,
   recordProductSale,
+  recordUsedSale,
   type SaleActionState,
 } from "@/app/product/sale-actions";
 
@@ -128,7 +129,7 @@ describe("recordProductSale", () => {
 
   it.each([
     ["insufficient_stock", /მარაგში ამდენი ცალი არ არის/],
-    ["not_stocked_product", /მეორადი ნივთის/],
+    ["not_stocked_product", /ტიპი შეიცვალა/],
     ["product_not_found", /ვერ მოიძებნა/],
     ["something unexpected", /ვერ შესრულდა/],
   ])("explains a database error: %s", async (message, expected) => {
@@ -143,6 +144,65 @@ describe("recordProductSale", () => {
     signIn(STAFF);
     await recordProductSale(idle, saleForm({ slug: "../../etc" }));
     expect(revalidatePath).not.toHaveBeenCalledWith(expect.stringContaining(".."));
+  });
+});
+
+describe("recordUsedSale", () => {
+  function usedForm(fields: Partial<Record<string, string>> = {}) {
+    const data = new FormData();
+    const values = {
+      productId: PRODUCT_ID,
+      slug: "oak-table",
+      totalPrice: "350",
+      soldOn: "2026-11-11",
+      note: "",
+      ...fields,
+    };
+    for (const [key, value] of Object.entries(values)) {
+      if (value !== undefined) data.set(key, value);
+    }
+    return data;
+  }
+
+  it("calls record_used_sale with the price and date, without a quantity", async () => {
+    const fake = signIn(STAFF);
+    const result = await recordUsedSale(idle, usedForm());
+
+    expect(result.status).toBe("success");
+    expect(result.message).toContain("350.00");
+    expect(opArgs(fake.queriesFor("rpc:record_used_sale")[0], "rpc")).toEqual([
+      { p_product_id: PRODUCT_ID, p_total_price: 350, p_sold_on: "2026-11-11", p_note: undefined },
+    ]);
+    expect(fake.queriesFor("rpc:record_product_sale")).toHaveLength(0);
+    expect(revalidatePath).toHaveBeenCalledWith("/product/oak-table");
+  });
+
+  it.each([
+    ["totalPrice", { totalPrice: "" }],
+    ["soldOn", { soldOn: "" }],
+    ["soldOn", { soldOn: "2026-11-12" }],
+  ])("rejects a missing or bad %s before touching the database", async (field, fields) => {
+    const fake = signIn(STAFF);
+    const result = await recordUsedSale(idle, usedForm(fields));
+    expect(result.fieldErrors).toHaveProperty(field);
+    expect(fake.queries).toHaveLength(0);
+  });
+
+  it("refuses without a staff session", async () => {
+    const fake = signIn(null);
+    expect((await recordUsedSale(idle, usedForm())).message).toMatch(/სესია/);
+    expect(fake.queries).toHaveLength(0);
+  });
+
+  it.each([
+    ["already_sold", /უკვე გაყიდულია/],
+    ["not_sellable", /დაარქივებული/],
+    ["not_used_product", /ტიპი შეიცვალა/],
+  ])("explains a database refusal: %s", async (message, expected) => {
+    signIn(STAFF, () => ({ error: { message } }));
+    const result = await recordUsedSale(idle, usedForm());
+    expect(result.status).toBe("error");
+    expect(result.message).toMatch(expected);
   });
 });
 

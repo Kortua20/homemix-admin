@@ -84,23 +84,54 @@ export function readFinanceFields(
   return { values, error };
 }
 
-// The sale date of a used item, mirroring getPublishedAtUpdate in app/product/actions.ts: a
-// blank date is stamped with today only on the transition INTO `sold`. An item already sold
-// before sales were recorded must be given its real date — stamping today would book an old
-// sale into the current month — so for it a blank date is an error, reported before anything
-// is written.
-export function resolveUsedSaleDate(
+// The sale of a used item, resolved against the status it had before this save. Reported
+// before anything is written. Two rules:
+//
+//   * Marking an item sold NOW requires its sale price. A sold item with no price is invisible
+//     to the books — it leaves the stock report without appearing in the sales report — which
+//     reads as "the status did not save". The date defaults to today on that transition.
+//   * An item already sold before sales were recorded may stay without a price, so editing
+//     an old listing never forces someone to invent one. If a price IS given for it, so must
+//     its real date be: stamping today would book an old sale into the current month.
+export function resolveUsedSale(
   input: FinanceInput,
   previousStatus: string | null,
 ): { soldOn: string | null; error?: string } {
   const sale = input.usedSale;
-  if (!sale || sale.totalPrice === null) return { soldOn: null };
+  if (!sale) return { soldOn: null };
+
+  const markingSoldNow = previousStatus !== "sold";
+
+  if (sale.totalPrice === null) {
+    return markingSoldNow
+      ? {
+          soldOn: null,
+          error: "გაყიდულად მონიშვნისას მიუთითეთ გაყიდვის ფასი (ფაქტიური).",
+        }
+      : { soldOn: null };
+  }
+
   if (sale.soldOn) return { soldOn: sale.soldOn };
-  if (previousStatus === "sold") {
+  if (!markingSoldNow) {
     return {
       soldOn: null,
       error: "მიუთითეთ გაყიდვის თარიღი — ნივთი უკვე გაყიდულად იყო მონიშნული.",
     };
   }
   return { soldOn: todayInTbilisi() };
+}
+
+// A NEW item is sold through "გაყიდვის დაფიქსირება" on its product page, which records the
+// sale and takes the units off the stock; it reaches `sold` by itself when the stock runs
+// out. Choosing `sold` by hand in the form would skip both, so it is refused — unless the
+// item is already sold out, in which case keeping that status is not a sale.
+export function statusTransitionError(
+  listingKind: string,
+  nextStatus: string,
+  previousStatus: string | null,
+): string | undefined {
+  if (listingKind === "new_stocked" && nextStatus === "sold" && previousStatus !== "sold") {
+    return "ახალი პროდუქტის გაყიდვა დააფიქსირეთ პროდუქტის გვერდზე — „გაყიდვის დაფიქსირება“.";
+  }
+  return undefined;
 }

@@ -126,3 +126,23 @@ test("a product with recorded sales cannot be deleted", async ({ page, catalog }
   await expect(dialog).toContainText("წაშლის ნაცვლად დააარქივეთ");
   expect(await catalog.stockOf(chair.id)).toMatchObject({ stock: 4 });
 });
+
+test("a new item cannot be marked sold by hand — its sales go through the sale form", async ({
+  page,
+  catalog,
+}) => {
+  const chair = await catalog.createStockedProduct({ stock: 3 });
+  await page.goto(`/product/${chair.slug}/edit`);
+  const status = page.getByLabel("სტატუსი");
+  await expect(status.locator("option")).toHaveText([
+    "მონახაზი",
+    "ხელმისაწვდომი",
+    "დაჯავშნილი",
+    "დაარქივებული",
+  ]);
+
+  // A sold-out item keeps the option, so its current status still shows.
+  const soldOut = await catalog.createStockedProduct({ stock: 0, status: "sold" });
+  await page.goto(`/product/${soldOut.slug}/edit`);
+  await expect(status).toHaveValue("sold");
+});

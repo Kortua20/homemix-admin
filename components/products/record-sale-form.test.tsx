@@ -4,11 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SaleActionState } from "@/app/product/sale-actions";
 
-const { recordProductSale } = vi.hoisted(() => ({
-  recordProductSale: vi.fn<(state: SaleActionState, data: FormData) => Promise<SaleActionState>>(),
+type SaleAction = (state: SaleActionState, data: FormData) => Promise<SaleActionState>;
+
+const { recordProductSale, recordUsedSale } = vi.hoisted(() => ({
+  recordProductSale: vi.fn<SaleAction>(),
+  recordUsedSale: vi.fn<SaleAction>(),
 }));
 
-vi.mock("@/app/product/sale-actions", () => ({ recordProductSale }));
+vi.mock("@/app/product/sale-actions", () => ({ recordProductSale, recordUsedSale }));
 
 import { RecordSaleForm } from "@/components/products/record-sale-form";
 
@@ -24,6 +27,7 @@ afterEach(() => {
 const props = {
   productId: "11111111-1111-4111-8111-111111111111",
   slug: "chair",
+  listingKind: "new_stocked" as const,
   stock: 5,
   listPrice: 60,
   purchasePrice: 50 as number | null,
@@ -135,3 +139,46 @@ describe("RecordSaleForm", () => {
     expect(screen.queryByRole("button", { name: /გაყიდვის დაფიქსირება/ })).not.toBeInTheDocument();
   });
 });
+
+describe("RecordSaleForm for a used item", () => {
+  const usedProps = { ...props, listingKind: "used_unique" as const, stock: 0, listPrice: 400, purchasePrice: 250 };
+
+  it("asks for the price and date only — a one-off piece has no quantity or stock", () => {
+    render(<RecordSaleForm {...usedProps} />);
+    expect(screen.queryByLabelText("რაოდენობა")).not.toBeInTheDocument();
+    expect(screen.queryByText(/მარაგი ამოიწურა/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("გაყიდვის ფასი (ფაქტიური)")).toBeRequired();
+    expect(screen.getByLabelText("გაყიდვის თარიღი")).toHaveValue("2026-11-11");
+  });
+
+  it("previews the profit, without a redundant unit price", async () => {
+    const user = userEvent.setup();
+    render(<RecordSaleForm {...usedProps} />);
+    await user.type(screen.getByLabelText("გაყიდვის ფასი (ფაქტიური)"), "350");
+    const preview = screen.getByText(/მოგება/);
+    expect(preview).toHaveTextContent("100.00 ₾");
+    expect(preview).not.toHaveTextContent("ერთეულის ფასი");
+  });
+
+  it("copies the list price on request", async () => {
+    const user = userEvent.setup();
+    render(<RecordSaleForm {...usedProps} />);
+    await user.click(screen.getByRole("button", { name: /იგივე, რაც ფასი/ }));
+    expect(screen.getByLabelText("გაყიდვის ფასი (ფაქტიური)")).toHaveValue(400);
+  });
+
+  it("sends the sale to recordUsedSale, not the stock action", async () => {
+    recordUsedSale.mockResolvedValue({ status: "success", message: "გაყიდვა დაფიქსირდა" });
+    const user = userEvent.setup();
+    render(<RecordSaleForm {...usedProps} />);
+    await user.type(screen.getByLabelText("გაყიდვის ფასი (ფაქტიური)"), "350");
+    await user.click(screen.getByRole("button", { name: /გაყიდვის დაფიქსირება/ }));
+
+    await waitFor(() => expect(recordUsedSale).toHaveBeenCalledTimes(1));
+    expect(recordProductSale).not.toHaveBeenCalled();
+    const data = Object.fromEntries(recordUsedSale.mock.calls[0][1]);
+    expect(data).toMatchObject({ totalPrice: "350", soldOn: "2026-11-11" });
+    expect(data).not.toHaveProperty("quantity");
+  });
+});
+

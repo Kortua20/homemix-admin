@@ -36,7 +36,8 @@ function renderInForm(ui: React.ReactElement, listPrice = "1103") {
   );
 }
 
-const salePrice = () => screen.queryByLabelText("გაყიდვის ფასი (ფაქტიური)");
+// A prefix match: when required, the label also carries the visual "*" (aria-hidden).
+const salePrice = () => screen.queryByLabelText(/^გაყიდვის ფასი \(ფაქტიური\)/);
 const saleDate = () => screen.queryByLabelText("გაყიდვის თარიღი");
 
 describe("ProductFinanceFields", () => {
@@ -80,6 +81,18 @@ describe("ProductFinanceFields", () => {
 
     await user.click(screen.getByRole("button", { name: "იგივე, რაც ფასი" }));
     expect(salePrice()).toHaveValue(1103);
+  });
+
+  it("requires the sale price and date when an item is marked sold now", () => {
+    renderInForm(<ProductFinanceFields listingKind="used_unique" status="sold" savedStatus="available" />);
+    expect(salePrice()).toBeRequired();
+    expect(saleDate()).toBeRequired();
+    expect(screen.getByText(/სავალდებულოა გაყიდულად მონიშვნისას/)).toBeInTheDocument();
+  });
+
+  it("does not force a price onto an item that was already sold before", () => {
+    renderInForm(<ProductFinanceFields listingKind="used_unique" status="sold" savedStatus="sold" />);
+    expect(salePrice()).not.toBeRequired();
   });
 
   it("requires a date once a sale price is entered", async () => {

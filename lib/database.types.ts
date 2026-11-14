@@ -811,6 +811,15 @@ export type Database = {
         }
         Returns: string
       }
+      record_used_sale: {
+        Args: {
+          p_note?: string
+          p_product_id: string
+          p_sold_on: string
+          p_total_price: number
+        }
+        Returns: string
+      }
       release_contact_email_quota: {
         Args: { p_client_id: string; p_secret: string }
         Returns: undefined
